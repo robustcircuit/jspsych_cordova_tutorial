@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="svg8" width="1920" height="1080" version="1.1" viewBox="0 0 508 285.75">
+  <g id="layer1" opacity="1">
+    <g id="svgview">
+      <path id="leftresp" fill="#fff" fill-opacity=".196" stroke="#fff" stroke-dasharray="none" stroke-dashoffset="0" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-width="1.5" d="M62.975 190.83c18.647-18.646 60.465-18.646 79.112 0 9.323 9.324 9.323 30.233 0 39.556-18.647 18.647-60.465 18.647-79.112 0-9.324-9.323-9.324-30.232 0-39.556z"/>
+      <path id="centerresp" fill="#fff" fill-opacity=".196" stroke="#fff" stroke-dasharray="none" stroke-dashoffset="0" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-width="1.5" d="M214.444 190.83c18.647-18.646 60.465-18.646 79.112 0 9.323 9.324 9.323 30.233 0 39.556-18.647 18.647-60.465 18.647-79.112 0-9.323-9.323-9.323-30.232 0-39.556z"/>
+      <path id="rightresp" fill="#fff" fill-opacity=".196" stroke="#fff" stroke-dasharray="none" stroke-dashoffset="0" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-width="1.5" d="M365.913 190.83c18.647-18.646 60.465-18.646 79.112 0 9.324 9.324 9.324 30.233 0 39.556-18.647 18.647-60.465 18.647-79.112 0-9.323-9.323-9.323-30.232 0-39.556z"/>
+      <g id="g5083" transform="translate(0 -18.658)">
+        <image id="targetimage" width="132.292" height="132.292" x="187.854" y="48.292" opacity="1" preserveAspectRatio="none"/>
+        <path id="rect4543" fill="#eee" fill-opacity="0" stroke="#fff" stroke-dasharray="none" stroke-dashoffset="0" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-width="1.352" d="M187.854 48.292h132.292v132.292H187.854z"/>
+      </g>
+      <g id="correctExtra" fill-opacity="1" transform="translate(0 -18.658)">
+        <path id="correctExtraRect" fill="#4ac79c" stroke="#fff" stroke-dasharray="none" stroke-dashoffset="0" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-width="1.5" d="M187.854 48.292h132.292v132.292H187.854z"/>
+        <text id="correctExtraText" x="232.997" y="118.274" fill="#fff" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" word-spacing="0" style="line-height:1.25" xml:space="preserve">
+          <tspan id="tspan5091" x="232.997" y="118.274" fill="#fff" stroke-width=".265" font-weight="700">Correct!</tspan>
+        </text>
+        <text id="text5097" x="240.159" y="89.583" fill="#fff" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" word-spacing="0" style="line-height:1.25" xml:space="preserve">
+          <tspan id="tspan5095" x="240.159" y="89.583" fill="#fff" stroke-width=".265" font-size="16.933" font-weight="700">+2</tspan>
+        </text>
+        <text style="line-height:1.25" id="text5105" x="240.159" y="150.966" fill="#fff" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" word-spacing="0" xml:space="preserve">
+          <tspan id="tspan5103" x="240.159" y="150.966" fill="#fff" stroke-width=".265" font-size="16.933" font-weight="700">+2</tspan>
+        </text>
+      </g>
+      <g id="incorrect" fill-opacity="1" transform="translate(0 -18.658)">
+        <path id="incorrectRect" fill="#d36e51" stroke="#fff" stroke-dasharray="none" stroke-dashoffset="0" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-width="1.5" d="M187.854 48.292h132.292v132.292H187.854z"/>
+        <text style="line-height:1.25" id="incorrectText" x="228.251" y="118.274" fill="#fff" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" word-spacing="0" xml:space="preserve">
+          <tspan id="tspan5148" x="228.251" y="118.274" fill="#fff" stroke-width=".265" font-weight="700">Incorrect!</tspan>
+        </text>
+        <text style="line-height:1.25" id="text5154" x="247.981" y="89.583" fill="#fff" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" word-spacing="0" xml:space="preserve">
+          <tspan id="tspan5152" x="247.981" y="89.583" fill="#fff" stroke-width=".265" font-size="16.933" font-weight="700">0</tspan>
+        </text>
+        <text id="text5158" x="247.981" y="150.966" fill="#fff" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" word-spacing="0" style="line-height:1.25" xml:space="preserve">
+          <tspan id="tspan5156" x="247.981" y="150.966" fill="#fff" stroke-width=".265" font-size="16.933" font-weight="700">0</tspan>
+        </text>
+      </g>
+      <g id="correctNormal" fill-opacity="1" transform="translate(0 -18.658)">
+        <path id="correctNormalRect" fill="#81aac2" stroke="#fff" stroke-dasharray="none" stroke-dashoffset="0" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-width="1.5" d="M187.854 48.292h132.292v132.292H187.854z"/>
+        <text style="line-height:1.25" id="correctNormalText" x="232.997" y="118.274" fill="#fff" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" word-spacing="0" xml:space="preserve">
+          <tspan id="tspan5132" x="232.997" y="118.274" fill="#fff" stroke-width=".265" font-weight="700">Correct!</tspan>
+        </text>
+        <text style="line-height:1.25" id="text5138" x="240.159" y="89.583" fill="#fff" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" word-spacing="0" xml:space="preserve">
+          <tspan id="tspan5136" x="240.159" y="89.583" fill="#ececec" fill-opacity="1" stroke-width=".265" font-size="16.933" font-weight="700">+1</tspan>
+        </text>
+        <text id="text5142" x="240.159" y="150.966" fill="#fff" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" word-spacing="0" style="line-height:1.25" xml:space="preserve">
+          <tspan id="tspan5140" x="240.159" y="150.966" fill="#ececec" fill-opacity="1" stroke-width=".265" font-size="16.933" font-weight="700">+1</tspan>
+        </text>
+      </g>
+      <g id="noresponse" fill-opacity="1" transform="translate(0 -18.658)">
+        <path id="noresponseRect" fill="#515151" stroke="#fff" stroke-dasharray="none" stroke-dashoffset="0" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="4" stroke-opacity="1" stroke-width="1.5" d="M187.854 48.292h132.292v132.292H187.854z"/>
+        <text id="noresponseText" x="253.778" y="116.6" fill="#fff" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" word-spacing="0" style="line-height:1.25" xml:space="preserve">
+          <tspan style="text-align:center" id="tspan5178" x="253.778" y="116.6" fill="#fff" stroke-width=".265" font-weight="700" text-anchor="middle">No valid response</tspan>
+        </text>
+      </g>
+      <text style="line-height:1.25" id="lefttext" x="72.393" y="226.168" fill="#000" fill-opacity="1" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" transform="translate(0 -11.25)" word-spacing="0" xml:space="preserve">
+        <tspan id="tspan4585" x="72.393" y="226.168" stroke-width=".265" font-size="14.111">More +1</tspan>
+      </text>
+      <text id="centertext" x="234.449" y="225.344" fill="#000" fill-opacity="1" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" transform="translate(0 -11.25)" word-spacing="0" style="line-height:1.25" xml:space="preserve">
+        <tspan id="tspan4589" x="234.449" y="225.344" stroke-width=".265" font-size="14.111">Equal</tspan>
+      </text>
+      <text style="line-height:1.25" id="righttext" x="375.039" y="226.235" fill="#000" fill-opacity="1" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" transform="translate(0 -11.25)" word-spacing="0" xml:space="preserve">
+        <tspan id="tspan4593" x="375.039" y="226.235" stroke-width=".265" font-size="14.111">More +2</tspan>
+      </text>
+    </g>
+    <text id="fixation" x="245.339" y="123.293" fill="#000" fill-opacity="1" stroke="none" stroke-width=".265" font-family="sans-serif" font-size="10.583" font-style="normal" font-weight="400" letter-spacing="0" transform="translate(0 -11.25)" word-spacing="0" style="line-height:1.25" xml:space="preserve">
+      <tspan id="tspan853" x="245.339" y="123.293" stroke-width=".265" font-size="21.167">+</tspan>
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,20 @@
+{
+    "styles": [
+        "js/jspsych/jspsych.css",
+        "css/custom_jspsych.css"
+    ],
+    "specificModules": [
+      "js/plugin-RLWMlearning.js"
+    ],
+    "globalModules": [
+      "js/jspsych/jspsych.js",
+      "js/jspsych/plugin-preload.js",
+      "js/jspsych/plugin-fullscreen.js",
+      "js/jspsych_addons/plugin-external-html-improved.js",
+      "js/jspsych/plugin-browser-check.js",
+      "js/jspsych/plugin-call-function.js",
+      "js/jspsych/plugin-html-keyboard-response.js",
+      "js/jspsych_addons/plugin-svg-fixation.js"
+    ],
+    "experimentScript": "RLWM.js"
+}

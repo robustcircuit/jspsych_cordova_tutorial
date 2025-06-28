@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; 
+                script-src 'self' https://www.gstatic.com/firebasejs/ https://www.googleapis.com https://apis.google.com 'unsafe-inline'; 
+                style-src 'self' 'unsafe-inline'; 
+                connect-src 'self' https://*.firebaseio.com https://www.googleapis.com https://identitytoolkit.googleapis.com; 
+                frame-src https://*.firebaseapp.com https://apis.google.com; 
+                img-src 'self' data:;">
+        <meta name="format-detection" content="telephone=no">
+        <meta name="msapplication-tap-highlight" content="no">
+        <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover">
+        <meta name="color-scheme" content="light dark">
+        <link rel="stylesheet" href="css/bootstrap.min.css">
+        <link rel="stylesheet" href="css/index.css">
+        <title>Hello World</title>
+        <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
+        <script src="cordova.js"></script>
+        <script src="js/index.js"></script>
+        <script src="js/socket.io.js"></script>
+              
+        <script src="js/d3.v7.js"></script>
+        <script src="js/bootstrap.bundle.min.js"></script>
+    </head>
+
+    <body>
+        <!-- Navigation bar shown only when logged in -->
+        <nav id="nav-bar" class="navbar navbar-expand-lg navbar-light bg-light d-none">
+            <div class="container-fluid">
+                <div class="dropdown me-2">
+                    <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        Menu
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                        <li><a class="dropdown-item" href="#" onclick="launchExperiment('RLWM')">RLWM</a></li>
+                    </ul>
+                </div>
+                <button class="btn btn-outline-danger" onclick="logout()">Logout</button>
+            </div>
+        </nav>
+        <div id="jspsych-body" class="d-none">
+        </div>
+
+        <!-- Auth container shown only when logged out -->
+        <div id="auth-container" class="container mt-5">
+            <h2>Register</h2>
+            <input type="email" id="reg-email" placeholder="Email" class="form-control mb-2">
+            <input type="password" id="reg-password" placeholder="Password" class="form-control mb-2">
+            <button onclick="register()" class="btn btn-primary mb-4">Register</button>
+
+            <h2>Login</h2>
+            <input type="email" id="login-email" placeholder="Email" class="form-control mb-2">
+            <input type="password" id="login-password" placeholder="Password" class="form-control mb-2">
+            <button onclick="login()" class="btn btn-success mb-4">Login</button>
+
+            <h2>Or</h2>
+            <button onclick="googleLogin()" class="btn btn-danger">Sign in with Google</button>
+        </div>
+    </body>
+
+</html>
+<!--
+<body>
+    <div id="auth-container">
+        <h2>Register</h2>
+        <input type="email" id="reg-email" placeholder="Email">
+        <input type="password" id="reg-password" placeholder="Password">
+        <button onclick="register()">Register</button>
+
+        <h2>Login</h2>
+        <input type="email" id="login-email" placeholder="Email">
+        <input type="password" id="login-password" placeholder="Password">
+        <button onclick="login()">Login</button>
+
+        <h2>Or</h2>
+        <button onclick="googleLogin()">Sign in with Google</button>
+        </div>
+
+        <div id="user-info" style="display:none;">
+        <p id="user-email"></p>
+        <button onclick="logout()">Logout</button>
+
+    </div>
+    <p><a href="RLWM.html">Continue to RLWM Experiment</a></p>
+    <div class="app">
+        <h1>Apache Cordova</h1>
+        <div id="deviceready" class="blink">
+            <p class="event listening">Connecting to Device</p>
+            <p class="event received">Device is Ready</p>
+            <p class="launch exp"><a href="RLWM.html">RLWM experiment</a></p>
+        </div>
+    </div>
+</body>
+-->

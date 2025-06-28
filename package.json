@@ -1,0 +1,59 @@
+{
+  "name": "neurograd.testapp",
+  "displayName": "TestApp",
+  "version": "1.0.0",
+  "description": "A sample Apache Cordova application that responds to the deviceready event.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "ecosystem:cordova"
+  ],
+  "author": "Apache Cordova Team",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "cordova-android": "^14.0.1",
+    "cordova-browser": "^7.0.0",
+    "cordova-electron": "^4.0.0",
+    "cordova-ios": "^7.1.1",
+    "cordova-plugin-device": "^3.0.0",
+    "cordova-plugin-device-motion": "^2.0.1",
+    "cordova-plugin-firebasex": "^18.0.7",
+    "cordova-support-android-plugin": "~2.0.4"
+  },
+  "cordova": {
+    "platforms": [
+      "ios",
+      "android",
+      "electron",
+      "browser"
+    ],
+    "plugins": {
+      "cordova-plugin-device-motion": {},
+      "cordova-plugin-device": {}
+    }
+  },
+  "dependencies": {
+    "@serialport/parser-readline": "^13.0.0",
+    "bcryptjs": "^3.0.2",
+    "body-parser": "^2.2.0",
+    "bootstrap": "^5.3.7",
+    "cocoapods": "^0.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "express-session": "^1.18.1",
+    "firebase": "^11.9.1",
+    "firebase-admin": "^13.4.0",
+    "jspsych": "^8.2.1",
+    "passport": "^0.7.0",
+    "passport-facebook": "^3.0.0",
+    "passport-github2": "^0.1.12",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-local": "^1.0.0",
+    "serialport": "^13.0.0",
+    "socket.io": "^4.8.1",
+    "ws": "^8.18.2"
+  }
+}
