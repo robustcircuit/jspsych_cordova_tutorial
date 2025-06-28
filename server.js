@@ -41,18 +41,6 @@ function getLocalIpAddress() {
   return 'localhost'; // fallback
 }
 
-// Setup serial port
-const arduinoPort = new SerialPort({
-  path: 'COM5',
-  baudRate: 9600,
-});
-
-// Parse newline-separated data
-const parser = arduinoPort.pipe(new ReadlineParser({ delimiter: '\n' }));
-
-// Buffers
-let gsrBuffer = [];
-
 const sslOptions = {
   key: fs.readFileSync(path.join(__dirname, 'ssl', 'server.key')),
   cert: fs.readFileSync(path.join(__dirname, 'ssl', 'server.cert')),
@@ -179,6 +167,18 @@ if (process.env.CONTEXT=='local'){
             }
           });
           if (process.env.ARDUINO=='true'){
+            
+            // Setup serial port
+            const arduinoPort = new SerialPort({
+              path: 'COM5',
+              baudRate: 9600,
+            });
+            // Parse newline-separated data
+            const parser = arduinoPort.pipe(new ReadlineParser({ delimiter: '\n' }));
+
+            // Buffers
+            let gsrBuffer = [];
+
             gsrFilepath=path.join(subjectLogDir,`${expdef.subjectId}_${expdef.sessionId}_gsr.csv`)
             hbFilepath=path.join(subjectLogDir,`${expdef.subjectId}_${expdef.sessionId}_hb.csv`)
             syncFilepath=path.join(subjectLogDir,`${expdef.subjectId}_${expdef.sessionId}_sync.csv`)
