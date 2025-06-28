@@ -28,23 +28,6 @@ admin.initializeApp({
   }),
 });
 
-// Function to get local network IP address
-function getLocalIpAddress() {
-  const interfaces = os.networkInterfaces();
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
-    }
-  }
-  return 'localhost'; // fallback
-}
-
-const sslOptions = {
-  key: fs.readFileSync(path.join(__dirname, 'ssl', 'server.key')),
-  cert: fs.readFileSync(path.join(__dirname, 'ssl', 'server.cert')),
-};
 
 // Serve Cordova browser build
 app.use(express.static(path.join(__dirname, 'www')));
@@ -86,16 +69,38 @@ app.get('/api/getEnv', (req, res) => {
   return res.json({CONTEXT: process.env.CONTEXT, ARDUINO: process.env.CONTEXT})
 
 });
-// Start HTTPS server
-const serverhttps =https.createServer(sslOptions, app).listen(process.env.PORT, () => {
-  const address = serverhttps.address();
-  const host = address.address === '::' ? 'localhost' : address.address;
-  const localIp = getLocalIpAddress();
-  console.log(`HTTPS server running at:`);
-  console.log(`- https://${host}:${address.port} (localhost)`);
-  console.log(`- https://${localIp}:${address.port} (local network)`);
-  //console.log(`HTTPS server running at ???:${PORT}`);
-});
+
+if (process.env.CONTEXT=='local'){
+  // Function to get local network IP address
+  function getLocalIpAddress() {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name]) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          return iface.address;
+        }
+      }
+    }
+    return 'localhost'; // fallback
+  }
+  const sslOptions = {
+    key: fs.readFileSync(path.join(__dirname, 'ssl', 'server.key')),
+    cert: fs.readFileSync(path.join(__dirname, 'ssl', 'server.cert')),
+  };
+  // Start HTTPS server
+  const serverhttps =https.createServer(sslOptions, app).listen(process.env.PORT, () => {
+    const address = serverhttps.address();
+    const host = address.address === '::' ? 'localhost' : address.address;
+    const localIp = getLocalIpAddress();
+    console.log(`HTTPS server running at:`);
+    console.log(`- https://${host}:${address.port} (localhost)`);
+    console.log(`- https://${localIp}:${address.port} (local network)`);
+  });
+} else {
+  app.listen(process.env.PORT, () => {
+    console.log(`Listening on port ${process.env.PORT}`)
+  })
+}
 
 // Middleware to verify Firebase ID token
 async function verifyFirebaseToken(req, res, next) {
@@ -167,7 +172,7 @@ if (process.env.CONTEXT=='local'){
             }
           });
           if (process.env.ARDUINO=='true'){
-            
+
             // Setup serial port
             const arduinoPort = new SerialPort({
               path: 'COM5',
