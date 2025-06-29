@@ -28,7 +28,12 @@
     text-align: center;
 }
 */
-
+.appdiv{
+  position:absolute;
+  top: 0;
+  left:0;
+  width:100%;
+}
 /* Scoped to authentication container */
 #auth-container h1,
 #auth-container h2 {

@@ -1,24 +1,50 @@
-  const socket = io("https://192.168.1.41:3000");
+async function RLWM() {
 
-  socket.on("error", (error) => {
-    console.log("socket connection problem");
-  });
+  const dependencies=[
+    "js/jspsych/jspsych.js",
+    "js/jspsych/plugin-preload.js",
+    "js/jspsych/plugin-fullscreen.js",
+    "js/jspsych_addons/plugin-external-html-improved.js",
+    "js/jspsych/plugin-browser-check.js",
+    "js/jspsych/plugin-call-function.js",
+    "js/jspsych/plugin-html-keyboard-response.js",
+    "js/jspsych_addons/plugin-svg-fixation.js",
+    "js/jspsych_addons/plugin-flex-instruction.js",
+    "js/jspsych_addons/plugin-flex-question.js",
+    "RLWM/js/plugin-RLWMlearning.js"
+  ]
 
-  socket.on("connect", (e) => {
-    console.log("socket connected");
-  });
+  // Load global JS modules
+  await Promise.all(dependencies.map(src => loadScript(src)));
 
-  socket.on("syncRequest", (data, ack) => {
-    // Respond with some data
-    ack({experimentMS: performance.now() });
-  });
+  /*
+  // Get location with respect to main process
+  const currentScript = document.currentScript;
+  const scriptUrl = new URL(currentScript.src);
+  const scriptPath = scriptUrl.pathname;
+  console.log('Full script path:', scriptPath);
+  console.log('Base URL:', baseUrl);
+  const parts = scriptPath.split('/');
+  const selfFolder = parts[parts.length - 2];
+  */
+
+  const selfFolder='RLWM'
+  
+  if (typeof socket === 'undefined') {
+    let socket
+  }
 
   const jspsychParentDiv='jspsych-body'
 
+  var tags2save=["RLWMtrial","browserinfo"]
   var jsPsych = initJsPsych({
     display_element: jspsychParentDiv,
     on_trial_finish: function(data) {
       // send trial to db
+      if (tags2save.includes(data.trialTag)){
+        addItem('trials', data);
+      }
+      console.log(data)
     },
     on_start: function(){
       console.log("here")
@@ -36,7 +62,7 @@
   }
   var random_subjectId=generateUUIDv4()
   var random_sessionId=generateUUIDv4()
-  var random_studyId='RLWM'
+  var random_studyId=generateUUIDv4()
 
   ////////////////////////////////////////////////////////////////////
   //// Experiment settings
@@ -45,19 +71,25 @@
     // identifiers (may be replaced by URLparameters)
     sessionId: random_sessionId,
     studyId: random_studyId,
+    experimentName: 'RLWM',
+    env: {CONTEXT: 'web'},
+    sent: 0,
     //
     nrepeats:3,
     toleranceAvgDistanceRepetition:0.25,
-    keyMode: 'mouse',
+    keyMode: 'keyboard',
+    instructionMouse: true,
     keyCodes: ['ArrowLeft', 'ArrowDown', 'ArrowRight'],
+    keyBack: 'ArrowLeft',
+    keyNext: 'ArrowRight',
     feedbackValues: [1.0,3.0],
     screen: {
       width: 1080,
       height: 1920
     },
     timings: {
-      instructions: {
-        preblockDur: 4000
+      preblock: {
+        timerDur: 4000
       },
       fixation: {
         fixDur: 500,
@@ -77,6 +109,8 @@
     // identifiers (may be replaced by URLparameters)
     sessionId: random_sessionId,
     studyId: random_studyId,
+    experimentName: 'RLWM',
+    sent: 0,
     // 
     sumCorrect: 0,
     doneFraction: 0,
@@ -92,7 +126,7 @@
     fetched: {images: false, language: false},
     currentSVG: undefined
   }
-  
+
   // check platform
   if (typeof cordova!=='undefined' && cordova?.platformId=='android'){
     const accelDisplay = d3.select('#'+jspsychParentDiv)
@@ -113,14 +147,14 @@
         // Update the div content using D3
         d3.select("#accel-display").html(
             `X: ${result.x.toFixed(2)}<br>
-             Y: ${result.y.toFixed(2)}<br>
-             Z: ${result.z.toFixed(2)}`
+              Y: ${result.y.toFixed(2)}<br>
+              Z: ${result.z.toFixed(2)}`
         );
       }
     },500)
   }
 
-  
+
   ////////////////////////////////////////////////////////////////////
   //// Stimulus definition
   ////////////////////////////////////////////////////////////////////
@@ -129,10 +163,13 @@
     // identifiers (may be replaced by URLparameters)
     sessionId: random_sessionId,
     studyId: random_studyId,
+    experimentName: 'RLWM',
+    sent: 0,
     // general
-    imagesFolder:'img/RLWM',
-    pathLearningTrial: `assets/RLWM/learningtrial_${expdef.screen.width}x${expdef.screen.height}.svg`,
-    pathProgressbar: 'assets/RLWM/progressbar_overall.svg',
+    imagesFolder:`${selfFolder}/imgsets`,
+    pathLearningTrial: `${selfFolder}/assets/learningtrial_${expdef.screen.width}x${expdef.screen.height}.svg`,
+    pathProgressbar: `${selfFolder}/assets/progressbar_overall.svg`,
+    pathInstructionImage: `${selfFolder}/assets/instruction_example.svg`,
     // SVG items
     idMain: '#svgview',
     idRespBoxes: ['#leftresp', '#centerresp', '#rightresp'],
@@ -198,71 +235,76 @@
   stimdef.imagesPreloadPaths=[]
   expdef.totaltrialNum=0
   expdef.maxReward=0
-  stimdef.blockTypes.forEach((block,blockidx) =>{
-    var catname=block.category
-    folder_path=`${stimdef.imagesFolder}/${catname}`
-    fetch(`https://192.168.1.41:3000/api/getfiles?folder=${folder_path}`)
-    .then(res => res.json())
-    .then(images => {
-      var shuffledImages = jsPsych.randomization.repeat(images, 1);
-      block.images=[]
-      shuffledImages.forEach((imgfile,imgidx)=>{
-        if (imgidx<block.setSize){
-          block.images.push(`${stimdef.imagesFolder}/${catname}/${imgfile}`)
-          stimdef.imagesPreloadPaths.push(`${stimdef.imagesFolder}/${catname}/${imgfile}`)
+  fetch(`${baseUrl}/api/getEnv`)
+  .then(res=>res.json())
+  .then(env => {
+    expdef.env=env
+    stimdef.blockTypes.forEach((block,blockidx) =>{
+      var catname=block.category
+      folder_path=`${stimdef.imagesFolder}/${catname}`
+      fetch(`${baseUrl}/api/getFiles?folder=${folder_path}`)
+      .then(res => res.json())
+      .then(images => {
+        var shuffledImages = jsPsych.randomization.repeat(images, 1);
+        block.images=[]
+        shuffledImages.forEach((imgfile,imgidx)=>{
+          if (imgidx<block.setSize){
+            block.images.push(`${stimdef.imagesFolder}/${catname}/${imgfile}`)
+            stimdef.imagesPreloadPaths.push(`${stimdef.imagesFolder}/${catname}/${imgfile}`)
+          }
+        })
+        // randomize image sequence until the average spacing
+        // between image repetitions matches setSize+-tolerance
+        var spacingCondition=false
+        var tryImages=[]
+        while (!spacingCondition){
+          tryImages=[]
+          block.images.forEach((img,imgidx)=>{
+            for (let i = 0; i < expdef.nrepeats; i++) {
+              tryImages.push(imgidx)
+            }
+          })
+          tryImages = jsPsych.randomization.repeat(tryImages, 1);
+          let lastSeen = {};
+          let gaps = {};
+          tryImages.forEach((imgidx, i) => {
+            if (lastSeen[imgidx] !== undefined) {
+              let gap = i - lastSeen[imgidx];
+              if (!gaps[imgidx]) gaps[imgidx] = [];
+              gaps[imgidx].push(gap);
+            }
+            lastSeen[imgidx] = i;
+          });
+          // Check if all average gaps are within setSize ± 0.25
+          spacingCondition = Object.values(gaps).every(gapList => {
+            let avgGap = gapList.reduce((a, b) => a + b, 0) / gapList.length;
+            return avgGap >= (block.setSize - expdef.toleranceAvgDistanceRepetition) && avgGap <= (block.setSize + expdef.toleranceAvgDistanceRepetition);
+          });
         }
-      })
-      // randomize image sequence until the average spacing
-      // between image repetitions matches setSize+-tolerance
-      var spacingCondition=false
-      var tryImages=[]
-      while (!spacingCondition){
-        tryImages=[]
-        block.images.forEach((img,imgidx)=>{
-          for (let i = 0; i < expdef.nrepeats; i++) {
-            tryImages.push(imgidx)
-          }
-        })
-        tryImages = jsPsych.randomization.repeat(tryImages, 1);
-        let lastSeen = {};
-        let gaps = {};
-        tryImages.forEach((imgidx, i) => {
-          if (lastSeen[imgidx] !== undefined) {
-            let gap = i - lastSeen[imgidx];
-            if (!gaps[imgidx]) gaps[imgidx] = [];
-            gaps[imgidx].push(gap);
-          }
-          lastSeen[imgidx] = i;
-        });
-        // Check if all average gaps are within setSize ± 0.25
-        spacingCondition = Object.values(gaps).every(gapList => {
-          let avgGap = gapList.reduce((a, b) => a + b, 0) / gapList.length;
-          return avgGap >= (block.setSize - expdef.toleranceAvgDistanceRepetition) && avgGap <= (block.setSize + expdef.toleranceAvgDistanceRepetition);
-        });
-      }
-      // Build trial array based on pseudorandomized image sequence
-      tryTrials = tryImages.map((imgidx,tblockNum) => ({
-        image: block.images[imgidx],
-        correctAction: block.correctAction[imgidx],
-        tblockNum: tblockNum,
-        tNum: expdef.totaltrialNum+tblockNum,
-        correctFeedback: imgidx % 2,
-      }));
-      expdef.totaltrialNum+=tryTrials.length
-      if (block.phase=='learn'){
-        progress.remtNum+=tryTrials.length
-      }
-      block.trials=tryTrials
-      if (block.phase=="learn"){
-        block.trials.forEach(trial=>{
-          expdef.maxReward+=expdef.feedbackValues[trial.correctFeedback],
-          trial.maxReward=expdef.maxReward
-        })
-      }
-      if (blockidx==stimdef.blockTypes.length-1){
-        progress.fetched.images=true
-      }
-    });
+        // Build trial array based on pseudorandomized image sequence
+        tryTrials = tryImages.map((imgidx,tblockNum) => ({
+          image: block.images[imgidx],
+          correctAction: block.correctAction[imgidx],
+          tblockNum: tblockNum,
+          tNum: expdef.totaltrialNum+tblockNum,
+          correctFeedback: imgidx % 2,
+        }));
+        expdef.totaltrialNum+=tryTrials.length
+        if (block.phase=='learn'){
+          progress.remtNum+=tryTrials.length
+        }
+        block.trials=tryTrials
+        if (block.phase=="learn"){
+          block.trials.forEach(trial=>{
+            expdef.maxReward+=expdef.feedbackValues[trial.correctFeedback],
+            trial.maxReward=expdef.maxReward
+          })
+        }
+        if (blockidx==stimdef.blockTypes.length-1){
+          progress.fetched.images=true
+        }
+      });
+    })
   })
 
   // log to console if requested
@@ -271,8 +313,6 @@
   ////////////////////////////////////////////////////////////////////
   //// Gather URL parameters
   ////////////////////////////////////////////////////////////////////
-  const queryString = window.location.search;
-  const urlParams = new URLSearchParams(queryString);
   //
   if (urlParams.has('LANGUAGE')) {
     expdef.language = urlParams.get('LANGUAGE');
@@ -298,6 +338,98 @@
     expdef.studyId = urlParams.get('STUDY_ID');
     stimdef.studyId = urlParams.get('STUDY_ID');
     progress.studyId = urlParams.get('STUDY_ID');
+  }
+
+
+
+  ////////////////////////////////////////////////////////////////////
+  //// Trial definitions
+  ////////////////////////////////////////////////////////////////////
+
+  function createD3Timer(duration, onComplete, options = {}) {
+    const {
+      selector = "body",     // parent to insert timer into
+      id = "d3-timer",       // ID to assign to timer container
+      position = "top-right", // one of: top-right, top-left, bottom-right, bottom-left
+      refreshInterval=100,
+      yMargin="50px",
+      xMargin="50px",
+      fillColor="#8573af"
+    } = options;
+
+    const size = 150;
+    const radius = size / 2 - 10;
+
+    // Remove any previous timer with same ID
+    d3.select(`#${id}`).remove();
+
+    // Create container div
+    const container = d3.select(selector)
+      .append("div")
+      .attr("id", id)
+      .style("position", "absolute")
+      .style("width", `${size}px`)
+      .style("height", `${size}px`)
+      .style("z-index", 1000);
+
+    // Positioning
+    switch (position) {
+      case "top-left":
+        container.style("top", yMargin).style("left", xMargin);
+        break;
+      case "top-right":
+        container.style("top", yMargin).style("right", xMargin);
+        break;
+      case "bottom-left":
+        container.style("bottom", yMargin).style("left", xMargin);
+        break;
+      case "bottom-right":
+        container.style("bottom", yMargin).style("right", xMargin);
+        break;
+      default:
+        container.style("top", yMargin).style("right", xMargin);
+    }
+
+    // Add SVG
+    const svg = container
+      .append("svg")
+      .attr("width", size)
+      .attr("height", size)
+      .append("g")
+      .attr("transform", `translate(${size / 2}, ${size / 2})`);
+
+    const background = svg.append("path").attr("fill", "#eee");
+    const foreground = svg.append("path").attr("fill", fillColor);
+    const text = svg.append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", "0.35em")
+      .style("font-size", "24px")
+      .text(duration);
+
+    const arc = d3.arc()
+      .innerRadius(radius - 10)
+      .outerRadius(radius)
+      .startAngle(0);
+
+    background.datum({ endAngle: 2 * Math.PI }).attr("d", arc);
+    foreground.datum({ endAngle: 2 * Math.PI }).attr("d", arc);
+
+    let timeLeft = duration;
+    const total = duration;
+
+    const interval = d3.interval(() => {
+      timeLeft-=(refreshInterval/1000);
+      const progress = timeLeft / total;
+      foreground.datum({ endAngle: 2 * Math.PI * progress }).attr("d", arc);
+      text.text(parseInt(timeLeft));
+
+      if (timeLeft <= 0) {
+        interval.stop();
+        foreground.datum({ endAngle: 0 }).attr("d", arc);
+        text.text("0");
+        if (typeof onComplete === "function") onComplete();
+      }
+    }, refreshInterval);
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -422,7 +554,7 @@
       if (expdef.mobileSession) {
         expdef.keyMode = 'touch'
       }
-      stimdef.pathLearningTrial=`assets/RLWM/learningtrial_${expdef.screen.width}x${expdef.screen.height}.svg`
+      stimdef.pathLearningTrial=`${selfFolder}/assets/learningtrial_${expdef.screen.width}x${expdef.screen.height}.svg`
       progress.currentSVG=stimdef.pathLearningTrial
       jsPsych
         .data
@@ -433,7 +565,6 @@
       }
     }
   };
-
 
   // fixation cross
   var fixation_trial = {
@@ -458,7 +589,6 @@
       return stimdef.blockTypes[progress.bNum].phase
     },
     imagePath: function () {
-      console.log(stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].image)
       return stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].image
     },
     on_finish: function (trialdata) {
@@ -499,44 +629,119 @@
     }
   }
 
-  var preblock_trial = {
-      type: jsPsychHtmlKeyboardResponse,
-      on_start: function(){
-        d3.select(stimdef.idMain).attr('opacity', '0')
-        d3.select(stimdef.idFixation).attr('opacity', '0')
-        if (stimdef.blockTypes[progress.bNum].phase=='learn'){
-          progress.barUpdate=true
-        }
-        if (!progress.barUpdate){
-          d3.select(stimdef.idProgress).attr('opacity', '0')
-          d3.select(stimdef.idProgressFrame).attr('opacity', '0')
-        } else {
-          d3.select(stimdef.idProgress).attr('opacity', '1')
-          d3.select(stimdef.idProgressFrame).attr('opacity', '1')
-        }
-      },
-      stimulus: function(){
-        console.log(stimdef.blockTypes[progress.bNum].images)
-        htmlString="<div class='jspsych-row-simple' style='text-align:center'>"
-        htmlString+=`<p>${lang.preblock_box1}<br></p>`
-        htmlString+="</div><div class='jspsych-image-container'>"
-        stimdef.blockTypes[progress.bNum].images.forEach((img,imgidx)=>{
-          htmlString+=`<img src=${img} alt=${imgidx}/>`
-        })
-        htmlString+="</div>"
-        htmlString+="<div class='jspsych-row-simple' style='text-align:center'>"
-        htmlString+=`<p>${lang.preblock_box2}</p>`
-        htmlString+="</div>"
-        return htmlString
-      },
-      choices: "ALL_KEYS",
-      trial_duration: expdef.timings.instructions.preblockDur
-  };  
+
+  var instruction_show = {
+    type: jsPsychFlexInstruction,
+    content: function () {
+      return instruction_list[instruction_idx];
+    },
+    trialTag: function () {
+      return "instruction-show";
+    },
+    on_finish: function(){
+      instruction_idx+=1
+    }
+  };
+
+  var instruction_check = {
+    type: jsPsychFlexQuestion,
+    content: function () {
+      return lang.welcome_check;
+    },
+    trialTag: function () {
+      return "instruction-check";
+    },
+    on_finish: function(trialdata){
+      if (trialdata.correct==1){
+        instruction_checked=true
+      }
+    }
+  };
+
+  var instruction_list
+  var instruction_idx=0;
+  var instruction_checked=false;
+  var instructions_timeline={
+    timeline:[instruction_show,instruction_show,instruction_show,instruction_check],
+    on_timeline_start: function(){
+      instruction_list=[lang.welcome1_show, lang.welcome2_show,lang.training_show]
+    },
+    loop_function: function(){
+      if (instruction_checked){
+        return false
+      } else {
+        instruction_idx=0
+        return true
+      }
+    }
+  }
+
+  var premain_show = {
+    type: jsPsychFlexInstruction,
+    content: function () {
+      return lang.main_show;
+    },
+    trialTag: function () {
+      return "premain-show";
+    },
+  };
+
+  var final_show = {
+    type: jsPsychFlexInstruction,
+    on_start: function(){
+      sendDataFromIndexedDB('trials',expdef).then(()=>{
+        console.log("end")
+        d3.select("#main-customhtml").remove()
+        jsPsych.finishTrial({})
+      })
+    },
+    content: function () {
+      return lang.final_show;
+    },
+    trialTag: function () {
+      return "final-show";
+    },
+  };
+
+  var end_show = {
+    type: jsPsychFlexInstruction,
+    content: function () {
+      return lang.end_show;
+    },
+    trialTag: function () {
+      return "end-show";
+    },
+    on_finish: function(){
+      socket.disconnect()
+    }
+  };
+
+  var preblock_show = {
+    type: jsPsychFlexInstruction,
+    content: function () {
+      return lang.preblock_show;
+    },
+    trialTag: function () {
+      return "preblock-show";
+    },
+    inputArray: function(){
+    return [`<div class="jspsych-image-container">${stimdef.blockTypes[progress.bNum].images.map(src => `<img src="${src}">`).join('')}</div>`]
+    },
+    on_start: function(){
+      createD3Timer(expdef.timings.preblock.timerDur/1000, ()=>{d3.select("#d3-timer").remove()},{selector:"#"+jspsychParentDiv})
+    }
+  };
+
+  var main_training = {
+    timeline: [preblock_show, loadSVG_func, learning_block, unloadSVG],
+    on_timeline_finish: function () {
+      progress.barUpdate=true;
+      document.body.style.cursor = 'pointer';
+    },
+  }
 
   var main_learning = {
-    timeline: [
-      preblock_trial, loadSVG_func, learning_block
-    ],
+    timeline: [preblock_show, loadSVG_func, learning_block, unloadSVG],
     on_timeline_finish: function () {
       //start_progress_width = Number(d3.select(stimdef.idProgress).attr('width'));
       document.body.style.cursor = 'pointer';
@@ -553,13 +758,14 @@
   ////////////////////////////////////////////////////////////////////
   //// Assemble timeline(s)
   ////////////////////////////////////////////////////////////////////
-  main_timeline=[browsercheck_trial, trial_preload,main_learning]
+  //const main_timeline=[browsercheck_trial, trial_preload, enter_fullscreen, instructions_timeline, main_training, premain_show,main_learning, exit_fullscreen]
+  const main_timeline=[browsercheck_trial, trial_preload, final_show,end_show]
 
   var script = document.createElement('script');
   script.onload = function () {
     progress.fetched.language=true
   };
-  script.src = 'js/RLWM/languages/lang.' + expdef.language + '.js';
+  script.src = `${selfFolder}/languages/lang.` + expdef.language + '.js';
   document
     .head
     .appendChild(script);
@@ -602,13 +808,32 @@
       console.error('Error fetching data:', error);
     }
     if (query_results.length==0){
-      addItem('expdef', expdef);
       addItem('stimdef', stimdef);
       addItem('progress', progress);
+      addExpdef(expdef);
     }
-    socket.emit('expdef', expdef);
-    socket.emit('stimdef', stimdef);
+    jsPsych.data.addProperties({
+      subjectId: expdef.subjectId,
+      sessionId: expdef.sessionId,
+      studyId: expdef.studyId,
+      experimentName: 'RLWM',
+      sent: 0,
+    });
+    if (expdef.env.CONTEXT=='local'){
+      if (!socket){
+        socket = io(baseUrl);
+      }
+      socket.on("syncRequest", (data, ack) => {
+        // Respond with some data
+        ack({experimentMS: performance.now() });
+      });
+      socket.emit('expdef', expdef);
+      socket.emit('stimdef', stimdef);
+    }
+
     console.log("Done fetching!");
     jsPsych.run(main_timeline)
   }
   main()
+
+}

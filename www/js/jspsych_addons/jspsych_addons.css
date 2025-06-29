@@ -2,6 +2,14 @@
   height: 100%
 }
 
+#jspsych-content{
+  font-size: calc(1.1rem + 0.25vw); /* responsive font size */
+}
+
+.jspsych-btn{
+  font-size: calc(1.1rem + 0.25vw); /* responsive font size */
+}
+/*
 .jspsych-custom-html {
   position: absolute;
   top: 1%;
@@ -17,11 +25,89 @@
   align-items: center;
   line-height: 1.3;
 }
+*/
+
+.jspsych-custom-html {
+  max-width: 90%;
+  max-height: 100vh;
+  height: 85%;
+  min-width: 75%;
+  overflow: hidden; /* Enables scrolling if content overflows */
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* Optional: center vertically */
+  align-items: center;     /* Optional: center horizontally */
+  padding: 1rem;           /* Optional: avoid touching edges */
+  position: absolute;
+  top:2%;
+  font-size: calc(1.1rem + 0.25vw); /* responsive font size */
+  line-height: 1.2; /* 120% of the font size */
+}
+
+.jspsych-custom-html * {
+  max-width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+}
+
+.tip{
+  font-size: 0.95;  
+}
+
+.lowerbar {
+  display: flex;
+  margin-top: auto;
+  justify-content: space-between;
+  width: 80%;
+  height: 5%;
+  margin-bottom:2%;
+  font-size: clamp(1rem,1.2rem,2rem);  
+}
+
+.jspsych-back {
+  padding: 10px;
+  background: rgb(220, 220, 220);
+  font-size: 100%;
+  border-radius: 5%;
+}
+
+.jspsych-next {
+  margin-left: auto; /* pushes this button to the right */
+  padding: 10px;
+  background: rgb(220, 220, 220);
+  font-size: 100%;
+  border-radius: 5%;
+}
+
+.jspsych-image-simple img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+/*
+.jspsych-text-simple {
+  margin-left: 10%;
+  margin-right: 10%;
+  margin-bottom: 2%;
+  line-height: 1.25;
+  position: relative;
+  max-height: 30%;
+  width: 80%;
+  font-size: 150%;
+  text-align: justify;
+  overflow-wrap: break-word;
+}
+*/
+.jspsych-text-simple {
+  word-wrap: break-word;
+  max-width: 100%;
+  width: 100%;
+}
 
 .jspsych-title {
   position: relative;
   width: 100%;
-  font-size: 200%;
+  font-size: clamp(1.2rem,1.6rem,2rem);
   margin-bottom: 2%;
   align-items: center;
   text-align: center;
@@ -31,6 +117,7 @@
 .jspsych-row-simple {
   margin-left: 2%;
   margin-right: 2%;
+  margin-bottom: 3%;
   position: relative;
   max-height: 30%;
   width: 95%;
@@ -135,14 +222,48 @@
   background-color: #c4c4c4
 }
 
+
 /*
-.jspsych-styled-longbutton:active {
-  background-color: #000000;
-  color: rgb(255, 255, 255);
-  box-shadow: 0 5px #666;
-  transform: translateY(4px);
-}
+TIMER
 */
+.timer-container {
+  position: absolute;
+  top: 30px;      /* distance from the top */
+  right: 30px;    /* distance from the right */
+  width: 120px;
+  height: 120px;
+  z-index: 1000;  /* optional: ensures it stays on top */
+  display: none;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+.ring-background {
+  fill: none;
+  stroke: #ddd;
+  stroke-width: 12;
+}
+
+.ring-progress {
+  fill: none;
+  stroke: #00aaff;
+  stroke-width: 12;
+  stroke-dasharray: 339.292; /* 2πr where r=54 */
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.time-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 24px;
+  font-weight: bold;
+}
+
 
 .flag-btn {
   display: block;
@@ -159,31 +280,37 @@
   opacity: 1;
 }
 
+/*
+.lowerbar {
+  display: flex;
+  margin-top: 3%;
 
-.jspsych-continue {
-  position: absolute;
-  top: 94%;
+  padding: 0 3%; 
+}
+
+.jspsych-next {
   right: 3%;
-  width: 40%;
-  height: 5%;
+  padding: 10px;
   background: rgb(220, 220, 220);
   font-size: 100%;
   align-content: center;
   text-justify: center;
-
+  align-self: flex-end;
+  border-radius: 5%;
 }
 
 .jspsych-back {
-  position: absolute;
-  top: 94%;
   left: 3%;
-  height:5%;
-  width: 40%;
+  padding: 10px;
   background: rgb(220, 220, 220);
   font-size: 100%;
   align-content: center;
   text-justify: center;
+  align-self: flex-start;
+  border-radius: 5%;
 }
+*/
+
 
 .jspsych-bottom-msg {
   position: absolute;
@@ -254,20 +381,6 @@ span{
   vertical-align: middle;
 }
 
-.jspsych-text-simple {
-  margin-left: 10%;
-  margin-right: 10%;
-  margin-bottom: 2%;
-  line-height: 1.25;
-  position: relative;
-  max-height: 30%;
-  width: 80%;
-  font-size: 150%;
-  text-align: justify;
-  overflow-wrap: break-word;
-}
-
-
 .jspsych-prompt-simple {
   margin-left: 10%;
   margin-right: 10%;
@@ -277,21 +390,21 @@ span{
   max-height: 30%;
   width: 80%;
   font-size: 150%;
-  text-align: justify;
+  text-align: center;
   overflow-wrap: break-word;
 }
 
 .jspsych-answer-simple {
   margin-left: 15%;
   margin-right: 15%;
-  margin-bottom: 1%;
+  margin-bottom: 4%;
   border-radius: 4px;
   border-color: rgb(148, 148, 148);
   border-width: 2px;
   border-style:solid;
   padding: 10px;
   position: relative;
-  height: 10%;
+  text-align: center;
   width: 70%;
   font-size: 120%;
   background-color: rgb(230, 230, 230);
@@ -330,14 +443,18 @@ span{
 
 .jspsych-image-container {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap; /* One row only */
   justify-content: center;
+  align-items: center;
   width: 100%;
+  height: 100%; /* Or any max height */
+  overflow:hidden;
 }
 
 .jspsych-image-container img {
-  width: 12%;
-  height: auto;
-  object-fit: contain;
+  height: 95%;        /* Limit height to container */
+  width: auto;         /* Preserve aspect ratio */
+  flex-shrink: 0;      /* Don't shrink and distort */
   margin: 5px;
+  object-fit: contain; /* Not strictly needed, but harmless here */
 }

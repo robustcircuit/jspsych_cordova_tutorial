@@ -1,7 +1,5 @@
 {
     "styles": [
-        "js/jspsych/jspsych.css",
-        "css/custom_jspsych.css"
     ],
     "specificModules": [
       "js/plugin-RLWMlearning.js"
@@ -14,7 +12,10 @@
       "js/jspsych/plugin-browser-check.js",
       "js/jspsych/plugin-call-function.js",
       "js/jspsych/plugin-html-keyboard-response.js",
-      "js/jspsych_addons/plugin-svg-fixation.js"
+      "js/jspsych_addons/plugin-svg-fixation.js",
+      "js/jspsych_addons/plugin-flex-instruction.js",
+      "js/jspsych_addons/plugin-flex-question.js",
+      "js/d3timer.js"
     ],
     "experimentScript": "RLWM.js"
 }

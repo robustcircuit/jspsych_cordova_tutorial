@@ -20,8 +20,18 @@
 // Wait for the deviceready event before using any of Cordova's device APIs.
 // See https://cordova.apache.org/docs/en/latest/cordova/events/events.html#deviceready
 
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
 
-
+function uuid16Base64() {
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')  // URL-safe
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')   // remove padding
+    .slice(0, 16);
+}
+const userId=uuid16Base64()
 
 document.addEventListener('deviceready', onDeviceReady, false);
 
@@ -76,15 +86,6 @@ function loadStyle(href) {
   });
 }
 
-function uuid16Base64() {
-  const bytes = crypto.getRandomValues(new Uint8Array(12));
-  return btoa(String.fromCharCode(...bytes))
-    .replace(/\+/g, '-')  // URL-safe
-    .replace(/\//g, '_')
-    .replace(/=+$/, '')   // remove padding
-    .slice(0, 16);
-}
-
 var deviceInfo
 
 function onDeviceReady() {
@@ -100,6 +101,7 @@ function onDeviceReady() {
 var db;
 var databaseName = 'dbRLWM';
 var databaseVersion = 1;
+var sendInterval=10000;
 var openRequest = window.indexedDB.open(databaseName, databaseVersion);
 
 openRequest.onerror = function (event) {
@@ -108,7 +110,6 @@ openRequest.onerror = function (event) {
 openRequest.onsuccess = function (event) {
     // Database is open and initialized - we're good to proceed.
     db = openRequest.result;
-    displayData();
 };
 
 openRequest.onupgradeneeded = function (event) {
@@ -118,121 +119,47 @@ openRequest.onupgradeneeded = function (event) {
     db.onerror = function () {
         console.log(db.errorCode);
     };
-
     // create trials store
     var storeTrials = db.createObjectStore('trials', { keyPath: 'trialId', autoIncrement: true});
     storeTrials.createIndex('trialId', 'trialId', { unique: false });
     storeTrials.createIndex('subjectId', 'subjectId', { unique: false });
     storeTrials.createIndex('sessionId', 'sessionId', { unique: false });
     storeTrials.createIndex('studyId', 'studyId', { unique: false });
+    storeTrials.createIndex('sent', 'sent', { unique: false });
+    storeTrials.createIndex('sendingIndex', ['subjectId', 'sessionId', 'studyId', 'sent'], { unique: false }); // NEW
+    storeTrials.createIndex('findingIndex', ['subjectId', 'sessionId', 'studyId'], { unique: false }); // NEW
+
     // create progress store
     var storeProgress = db.createObjectStore('progress', { keyPath: 'sessionId', autoIncrement: true});
     storeProgress.createIndex('sessionId', 'sessionId', { unique: false }); 
     storeProgress.createIndex('subjectId', 'subjectId', { unique: false });
     storeProgress.createIndex('studyId', 'studyId', { unique: false });
-    storeProgress.createIndex('compoundIndex', ['subjectId', 'sessionId', 'studyId'], { unique: false }); // NEW
+    storeProgress.createIndex('sent', 'sent', { unique: false });
+    storeProgress.createIndex('sendingIndex', ['subjectId', 'sessionId', 'studyId', 'sent'], { unique: false }); // NEW
+    storeProgress.createIndex('findingIndex', ['subjectId', 'sessionId', 'studyId'], { unique: false }); // NEW
 
     // create expdef store
     var storeExpdef = db.createObjectStore('expdef', { keyPath: 'sessionId', autoIncrement: true});
     storeExpdef.createIndex('sessionId', 'sessionId', { unique: false });  
     storeExpdef.createIndex('subjectId', 'subjectId', { unique: false });
-    storeExpdef.createIndex('studyId', 'studyId', { unique: false });    
-    storeExpdef.createIndex('compoundIndex', ['subjectId', 'sessionId', 'studyId'], { unique: false }); // NEW
+    storeExpdef.createIndex('studyId', 'studyId', { unique: false });   
+    storeExpdef.createIndex('sent', 'sent', { unique: false }); 
+    storeExpdef.createIndex('sendingIndex', ['subjectId', 'sessionId', 'studyId', 'sent'], { unique: false }); // NEW
+    storeExpdef.createIndex('findingIndex', ['subjectId', 'sessionId', 'studyId'], { unique: false }); // NEW
 
     // create stimdef store
     var storeStimdef = db.createObjectStore('stimdef', { keyPath: 'sessionId', autoIncrement: true});
     storeStimdef.createIndex('sessionId', 'sessionId', { unique: false });    
     storeStimdef.createIndex('subjectId', 'subjectId', { unique: false });
     storeStimdef.createIndex('studyId', 'studyId', { unique: false });    
-    storeStimdef.createIndex('compoundIndex', ['subjectId', 'sessionId', 'studyId'], { unique: false }); // NEW
+    storeStimdef.createIndex('sent', 'sent', { unique: false });
+    storeStimdef.createIndex('sendingIndex', ['subjectId', 'sessionId', 'studyId', 'sent'], { unique: false }); // NEW
+    storeStimdef.createIndex('findingIndex', ['subjectId', 'sessionId', 'studyId'], { unique: false }); // NEW
 
 };
 
-function displayData() {
-    if (!db) {
-        console.error('Database is not initialized yet.');
-        return;
-    }
 
-    const transaction = db.transaction('trials', 'readonly');
-    const store = transaction.objectStore('trials');
-    const request = store.getAll();
-
-    request.onsuccess = function (event) {
-        const allRecords = event.target.result;
-        console.log('All trials:', allRecords);
-
-        // Optional: Display in HTML
-        allRecords.forEach(record => {
-            console.log(`Trial ID: ${record.trialId}, Session ID: ${record.sessionId}`);
-        });
-    };
-
-    request.onerror = function (event) {
-        console.error('Failed to fetch data:', event.target.error);
-    };
-}
-
-function addTrial(newTrial) {
-    if (!db) {
-        console.error('Database is not initialized yet.');
-        return;
-    }
-
-    var trialsStore = db.transaction('trials', 'readwrite').objectStore('trials');
-
-    trialsStore.add(newTrial);
-
-}
-
-function addItem(storeName, newEntry) {
-    if (!db) {
-        console.error('Database is not initialized yet.');
-        return;
-    }
-
-    var store = db.transaction(storeName, 'readwrite').objectStore(storeName);
-
-    store.add(newEntry);
-
-}
-
-function addProgress(newProgress) {
-    if (!db) {
-        console.error('Database is not initialized yet.');
-        return;
-    }
-
-    var progressStore = db.transaction('progress', 'readwrite').objectStore('progress');
-    progressStore.add(newProgress);
-}
-
-function addExpdef(newExpdef) {
-    if (!db) {
-        console.error('Database is not initialized yet.');
-        return;
-    }
-
-    var expdefStore = db.transaction('expdef', 'readwrite').objectStore('expdef');
-    if (deviceInfo){
-        newExpdef.device=deviceInfo
-    } else {
-        newExpdef.device={'uuid':uuid16Base64()}
-    }
-    
-    expdefStore.add(newExpdef);
-}
-
-function addStimdef(newStimdef) {
-    if (!db) {
-        console.error('Database is not initialized yet.');
-        return;
-    }
-    var stimdefStore = db.transaction('stimdef', 'readwrite').objectStore('stimdef');
-    stimdefStore.add(newStimdef);
-}
-
-function getByCompound(storeName, object) {
+function getByCompound(storeName, object, filterSent=null) {
     return new Promise((resolve, reject) => {
         if (!db) {
             reject('Database is not initialized yet.');
@@ -241,9 +168,15 @@ function getByCompound(storeName, object) {
 
         const transaction = db.transaction(storeName, 'readonly');
         const store = transaction.objectStore(storeName);
-        const index = store.index('compoundIndex');
-
-        const compoundKey = [object.subjectId, object.sessionId, object.studyId];
+        let index
+        let compoundKey
+        if (filterSent===null){
+            index = store.index('findingIndex');
+            compoundKey = [object.subjectId, object.sessionId, object.studyId];
+        } else {
+            index = store.index('sendingIndex');
+            compoundKey = [object.subjectId, object.sessionId, object.studyId,filterSent];
+        }
         const request = index.getAll(compoundKey);
 
         request.onsuccess = function (event) {
@@ -255,6 +188,99 @@ function getByCompound(storeName, object) {
             reject(event.target.error);
         };
     });
+}
+
+async function sendDataFromIndexedDB(storeName,object) {
+
+    const transaction = db.transaction(storeName, 'readwrite');
+    const store = transaction.objectStore(storeName);
+    const index = store.index('sendingIndex');
+    const compoundKey = [object.subjectId, object.sessionId, object.studyId, 0];
+    const request = index.getAll(compoundKey);
+
+    request.onsuccess = function (event) {
+        var results = event.target.result;
+        const baseUrl = `${window.location.protocol}//${window.location.host}`;
+        if (results.length==0){
+            return
+        }
+        fetch(`${baseUrl}/api/uploadData`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({data: results, type: storeName})
+        })
+        .then(response => response.json())
+        .then(()=>{
+            const transaction = db.transaction(storeName, 'readwrite');
+            const store = transaction.objectStore(storeName);
+            const index = store.index('sendingIndex');
+            index.openCursor(compoundKey).onsuccess = function (event) {
+                const cursor = event.target.result;
+                if (cursor) {
+                        const record = cursor.value;
+                        record.sent = 1;
+                        const updateRequest = cursor.update(record);
+                        updateRequest.onsuccess = () => {
+                        //console.log(`Updated record with key ${cursor.primaryKey}`);
+                    };
+                    updateRequest.onerror = () => {
+                        console.error(`Failed to update record with key ${cursor.primaryKey}`);
+                    };
+                    cursor.continue();  // Move to the next item
+                }
+            }
+            return
+        })
+        .catch(()=>{
+            console.error
+            return
+        });
+    };
+
+}
+
+function addItem(storeName, newEntry) {
+    if (!db) {
+        console.error('Database is not initialized yet.');
+        return;
+    }
+    var store = db.transaction(storeName, 'readwrite').objectStore(storeName);
+    store.add(newEntry);
+};
+
+function addExpdef(newExpdef) {
+    if (!db) {
+        console.error('Database is not initialized yet.');
+        return;
+    }
+    //
+    var expdefStore = db.transaction('expdef', 'readwrite').objectStore('expdef');
+    if (deviceInfo){
+        newExpdef.device=deviceInfo
+    } else {
+        newExpdef.device=userId
+    }
+    //
+    expdefStore.add(newExpdef);
+    //
+    setInterval(()=>{
+        fetch(`${baseUrl}/api/uploadData`, {
+            method: 'HEAD'
+        })
+        .then(async response => {
+            if (response.ok) {
+                await sendDataFromIndexedDB('expdef',newExpdef)
+                await sendDataFromIndexedDB('stimdef',newExpdef)
+                await sendDataFromIndexedDB('progress',newExpdef)
+                await sendDataFromIndexedDB('trials',newExpdef)
+            } else {
+                console.warn(`⚠️ Server API not accessible: ${response.status}`);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Network or CORS error:', error);
+        });
+    }, sendInterval)
 }
 
 const firebaseConfig = {
@@ -355,8 +381,6 @@ function getCurrentUser() {
 }
 
 async function launchExperiment(expName){
-    // Load CSS (if not already loaded)
-    const expDir=expName
     fetch(`./${expName}/${expName}.json`)
     .then(response => {
         if (!response.ok) throw new Error('Failed to load');
@@ -376,3 +400,24 @@ async function launchExperiment(expName){
         console.error(`Error loading ${expName}.json: `, error);
     });
 }
+
+// 
+const baseUrl = `${window.location.protocol}//${window.location.host}`;
+socket = io(baseUrl);
+socket.on("error", (error) => {
+    console.log("socket connection problem");
+});
+socket.on("connect", (e) => {
+    socket.emit('register', userId);
+    if (urlParams.has('TASK')){
+        const TASK = urlParams.get('TASK');
+        document.getElementById('auth-container').classList.add('d-none');
+        document.getElementById('nav-bar').classList.add('d-none');
+        document.getElementById('jspsych-body').classList.remove('d-none');
+        launchExperiment(TASK)
+    }
+});
+
+socket.on('execute', (data) => {
+    console.log(data)
+});

@@ -1,82 +1,95 @@
 
 // Get location with respect to main process
+/*
 const currentScript = document.currentScript;
 const scriptUrl = new URL(currentScript.src);
 const scriptPath = scriptUrl.pathname;
+console.log('Full script path:', scriptPath);
+console.log('Base URL:', baseUrl);
 const parts = scriptPath.split('/');
 const selfFolder = parts[parts.length - 2];
+*/
 
-let socket
+selfFolder='RLWM'
 
-const jspsychParentDiv='jspsych-body'
-
-var tags2save=["RLWMtrial","browserInfo"]
-var jsPsych = initJsPsych({
-  display_element: jspsychParentDiv,
-  on_trial_finish: function(data) {
-    // send trial to db
-    if (data.trialTag in tags2save){
-
-    }
-    console.log(data)
-  },
-  on_start: function(){
-    console.log("here")
-  }
-});
+if (typeof socket === 'undefined') {
+  let socket
+}
 
 ///////
 const consoleLog=true
-
-/////// generate random ids
-function generateUUIDv4() {
-  return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-  );
-}
-var random_subjectId=generateUUIDv4()
-var random_sessionId=generateUUIDv4()
-var random_studyId='RLWM'
 
 ////////////////////////////////////////////////////////////////////
 //// Experiment settings
 ////////////////////////////////////////////////////////////////////
 var expdef={
-  // identifiers (may be replaced by URLparameters)
-  sessionId: random_sessionId,
-  studyId: random_studyId,
-  //
+  // identifiers (may be replaced later)
+  sessionId: uuid16Base64(),
+  studyId: uuid16Base64(),
+  subjectId: uuid16Base64(),
+  experimentName: 'RLWM',
+  env: {CONTEXT: 'web'},
+  sent: 0,
+  // general settings
   nrepeats:3,
   toleranceAvgDistanceRepetition:0.25,
-  keyMode: 'mouse',
+  feedbackValues: [1,2],
+  keyMode: 'keyboard',
+  instructionMouse: true,
   keyCodes: ['ArrowLeft', 'ArrowDown', 'ArrowRight'],
-  feedbackValues: [1.0,3.0],
+  keyBack: 'ArrowLeft',
+  keyNext: 'ArrowRight',
   screen: {
-    width: 1080,
-    height: 1920
+    width: 1920,
+    height: 1080
   },
   timings: {
-    instructions: {
-      preblockDur: 4000
+    preblock: {
+      timerDur: 4000
     },
     fixation: {
-      fixDur: 500,
+      fixDur: [500,1000],
     },
-    learning: {
+    RLWMlearning: {
       postResponseDur: 200,
-      feedbackDur: 800,
+      feedbackDur: 100,
       fadeInDur: 100, // fade in of learning trials
-      responseTimeout: 1500,
+      responseTimeout: 2500,
+    },
+    progress: {
+      updateDur: 800
     }
   },
   language: "english",
   mobileSession: false,
+  jspsychParentDiv:'jspsych-body',
+  tags2save: ["RLWMlearning","browserinfo"]
 }
+
+
+////////////////////////////////////////////////////////////////////
+//// Experiment settings
+////////////////////////////////////////////////////////////////////
+
+var jsPsych = initJsPsych({
+  display_element: expdef.jspsychParentDiv,
+  on_trial_finish: function(data) {
+    // send trial to db
+    if (expdef.tags2save.includes(data.trialTag)){
+      addItem('trials', data);
+    }
+    console.log(data)
+  },
+});
+
+
 
 var progress={
   // identifiers (may be replaced by URLparameters)
-  sessionId: random_sessionId,
-  studyId: random_studyId,
+  sessionId: expdef.sessionId,
+  studyId: expdef.studyId,
+  experimentName: 'RLWM',
+  sent: 0,
   // 
   sumCorrect: 0,
   doneFraction: 0,
@@ -95,7 +108,7 @@ var progress={
 
 // check platform
 if (typeof cordova!=='undefined' && cordova?.platformId=='android'){
-  const accelDisplay = d3.select('#'+jspsychParentDiv)
+  const accelDisplay = d3.select('#'+expdef.jspsychParentDiv)
   .append("div")
   .attr("id", "accel-display")
   .style("position", "fixed")
@@ -120,38 +133,41 @@ if (typeof cordova!=='undefined' && cordova?.platformId=='android'){
   },500)
 }
 
-
 ////////////////////////////////////////////////////////////////////
 //// Stimulus definition
 ////////////////////////////////////////////////////////////////////
 
 var stimdef = {
   // identifiers (may be replaced by URLparameters)
-  sessionId: random_sessionId,
-  studyId: random_studyId,
-  // general
+  sessionId: expdef.sessionId,
+  studyId: expdef.studyId,
+  experimentName: 'RLWM',
+  sent: 0,
+  // Paths
   imagesFolder:`${selfFolder}/imgsets`,
   pathLearningTrial: `${selfFolder}/assets/learningtrial_${expdef.screen.width}x${expdef.screen.height}.svg`,
   pathProgressbar: `${selfFolder}/assets/progressbar_overall.svg`,
-  // SVG items
+  pathInstructionImage: `${selfFolder}/assets/instruction_example.svg`,
+  // SVG General
   idMain: '#svgview',
-  idRespBoxes: ['#leftresp', '#centerresp', '#rightresp'],
-  idRespBoxesText: ['#lefttext', '#centertext', '#righttext'],
-  idFeedback: ['#noresponse','#incorrect', '#correctNormal', '#correctExtra'],
-  idFeedbackText: ['#noresponseText','#incorrectText', '#correctNormalText', '#correctExtraText'],
-  idFeedbackRect: ['#noresponseRect','#incorrectRect', '#correctNormalRect', '#correctExtraRect'],
-  textFeedback: ['No valid response', 'Incorrect', 'Correct', 'Correct'],
-  idTargetLearning:'#targetimage',
-  // Dynamic SVG properties
-  idRespBoxesColor: ['#81aac2ff', '#c1c34aff', '#0fb76fff'],
-  correctFeedbackColor : ['#c1c34aff', '#0fb76fff'],
-  idRespBoxesOpacity: ['0.2', '0.6'],
-  // Fixation
   idFixation: "#fixation",
-  // Progress bar
+  // SVG Progress bar
   idProgress: '#progressbar',
   idProgressFrame: '#progressframe',
-  progressbar_stepDownUp: [0, 0],
+  progressFeedbackColor : ['#b6cb41', '#4ac79cff'],
+  // RLWMlearning plugin
+  RLWMlearning: {
+    idRespBoxes: ['#leftresp', '#centerresp', '#rightresp'],
+    idRespBoxesText: ['#lefttext', '#centertext', '#righttext'],
+    idFeedback: ['#noresponse','#incorrect', '#correctNormal', '#correctExtra'],
+    idFeedbackText: ['#noresponseText','#incorrectText', '#correctNormalText', '#correctExtraText'],
+    idFeedbackRect: ['#noresponseRect','#incorrectRect', '#correctNormalRect', '#correctExtraRect'],
+    textFeedback: ['No valid response', 'Incorrect', `Correct +${expdef.feedbackValues[0]}`, `Correct +${expdef.feedbackValues[1]}`],
+    idTargetLearning:'#targetimage',
+    // Dynamic SVG properties
+    idRespBoxesColor: ['#81aac2ff', '#b6cb41', '#4ac79cff'],
+    idRespBoxesOpacity: ['0.2', '0.6'],
+  },
 }
 
 // set and randomize categories included in the experiment
@@ -198,26 +214,14 @@ stimdef.blockTypes = trainingBlock.concat(stimdef.blockTypes); // join them back
 stimdef.imagesPreloadPaths=[]
 expdef.totaltrialNum=0
 expdef.maxReward=0
-fetch(`https://192.168.1.41:3000/api/getEnv`)
+fetch(`${baseUrl}/api/getEnv`)
 .then(res=>res.json())
 .then(env => {
   expdef.env=env
-  if (env.CONTEXT=='local'){
-    socket = io("https://192.168.1.41:3000");
-    socket.on("error", (error) => {
-      console.log("socket connection problem");
-    });
-    socket.on("connect", (e) => {
-      console.log("socket connected");
-    });
-    socket.on("syncRequest", (data, ack) => {
-      ack({experimentMS: performance.now() });
-    });
-  }
   stimdef.blockTypes.forEach((block,blockidx) =>{
     var catname=block.category
     folder_path=`${stimdef.imagesFolder}/${catname}`
-    fetch(`https://192.168.1.41:3000/api/getFiles?folder=${folder_path}`)
+    fetch(`${baseUrl}/api/getFiles?folder=${folder_path}`)
     .then(res => res.json())
     .then(images => {
       var shuffledImages = jsPsych.randomization.repeat(images, 1);
@@ -269,12 +273,14 @@ fetch(`https://192.168.1.41:3000/api/getEnv`)
         progress.remtNum+=tryTrials.length
       }
       block.trials=tryTrials
-      if (block.phase=="learn"){
-        block.trials.forEach(trial=>{
+      block.trials.forEach((trial,tidx)=>{
+        if (block.phase=="learn"){
           expdef.maxReward+=expdef.feedbackValues[trial.correctFeedback],
-          trial.maxReward=expdef.maxReward
-        })
-      }
+          stimdef.blockTypes[blockidx].trials[tidx].maxReward=expdef.maxReward
+        } else {
+          stimdef.blockTypes[blockidx].trials[tidx].maxReward=0       
+        }
+      })
       if (blockidx==stimdef.blockTypes.length-1){
         progress.fetched.images=true
       }
@@ -288,8 +294,6 @@ consoleLog && console.log('Blocks\n', stimdef.blockTypes);
 ////////////////////////////////////////////////////////////////////
 //// Gather URL parameters
 ////////////////////////////////////////////////////////////////////
-const queryString = window.location.search;
-const urlParams = new URLSearchParams(queryString);
 //
 if (urlParams.has('LANGUAGE')) {
   expdef.language = urlParams.get('LANGUAGE');
@@ -301,8 +305,11 @@ if (urlParams.has('SUBJECT_ID')) {
   progress.subjectId = urlParams.get('SUBJECT_ID');
 } else if (urlParams.has('PROFILIC_PID')) {
   expdef.subjectId = urlParams.get('PROFILIC_PID');
-  stimdef.subjectId = urlParams.get('PROFILIC_PID');
-  progress.subjectId = urlParams.get('PROFILIC_PID');
+  expdef.prolificId = expdef.subjectId
+  stimdef.subjectId = expdef.subjectId
+  stimdef.prolificId = expdef.subjectId
+  progress.subjectId = expdef.subjectId
+  progress.prolificId = expdef.subjectId
 }
 //
 if (urlParams.has('SESSION_ID')) {
@@ -338,7 +345,7 @@ var loadSVG_func = {
     }
     Promise
       .all([
-        d3.select('#'+jspsychParentDiv)
+        d3.select('#'+expdef.jspsychParentDiv)
         .append('div')
         .attr('id', 'jspsych-svg')
         .style('position', 'absolute')
@@ -374,6 +381,7 @@ var loadSVG_func = {
       })
   },
 }
+
 // unloadSVG
 var unloadSVG = {
     type: jsPsychCallFunction,
@@ -384,6 +392,47 @@ var unloadSVG = {
     },
     on_timeline_finish: function () {},
 };
+
+var updateProgress = {
+  type: jsPsychCallFunction,
+  async: true,
+  func: function (done) {
+    async function progressBarUpdate(trialdata) {
+      var current_width = Number(d3.select(stimdef.idProgress).attr('width'));
+      var progressbar_fullLength = Number(d3.select(stimdef.idProgressFrame).attr('width'))
+      var point2bar = progressbar_fullLength/expdef.maxReward; 
+      var expected_width=point2bar*stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].maxReward;
+      var delta_width = expected_width - (current_width+point2bar*(expdef.feedbackValues[trialdata.feedback-1]));
+      var correction_factor = delta_width/(progress.remtNum*progress.expectedAccuracy); 
+      if (progress.remtNum==0){
+        correction_factor=delta_width;
+      }
+      var next_width = current_width + point2bar*(expdef.feedbackValues[trialdata.feedback-1]) + correction_factor;
+      progress.currentBarWidth=next_width
+      console.log(current_width,progressbar_fullLength,point2bar,expected_width,delta_width,correction_factor,next_width)
+      await new Promise(resolve => {
+        d3.select(stimdef.idProgress)
+          .transition().duration(100).attr('width', next_width.toString())
+          .transition().duration(expdef.timings.progress.updateDur - 200)
+          .style('fill', stimdef.progressFeedbackColor[trialdata.feedback - 1])
+          .on("end", () => {
+            d3.select(stimdef.idProgress)
+              .transition().duration(100)
+              .style('fill', "#ffffffff")
+              .on("end", resolve); // Resolve after the final fill transition
+          });
+      });
+    }
+    var trialdata = jsPsych.data.getLastTrialData().trials[0]
+    if (progress.barUpdate && trialdata.correct>0) {
+      progressBarUpdate(trialdata).then(done)
+    } else {
+      jsPsych.pluginAPI.setTimeout(()=>{
+        done()
+      }, expdef.timings.progress.updateDur)
+    }
+  },
+}
 
 // enter fullscreen
 var enter_fullscreen = {
@@ -451,11 +500,16 @@ var browsercheck_trial = {
   }
 };
 
-
 // fixation cross
 var fixation_trial = {
   type: jsPsychSVGfixation,
-  fix_duration: expdef.timings.fixation.fixDur
+  fix_duration: function(){
+    if (typeof expdef.timings.fixation.fixDur === 'number') {
+      return expdef.timings.fixation.fixDur
+    } else if (Array.isArray(expdef.timings.fixation.fixDur) && expdef.timings.fixation.fixDur.length === 2){
+      return jsPsych.randomization.randomInt(expdef.timings.fixation.fixDur[0],expdef.timings.fixation.fixDur[1])
+    }
+  }
 };
 
 // learning trial
@@ -468,15 +522,17 @@ var learning_trial = {
   correctFeedback: function () {
     return stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].correctFeedback
   },
-  maxReward: function () {
-    return stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].maxReward
-  },
   trialMode: function () {
     return stimdef.blockTypes[progress.bNum].phase
   },
   imagePath: function () {
-    console.log(stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].image)
     return stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].image
+  },
+  timings: function(){
+    return expdef.timings.RLWMlearning
+  },
+  stimdef: function(){
+    return stimdef.RLWMlearning
   },
   on_finish: function (trialdata) {
     //
@@ -497,7 +553,7 @@ var learning_trial = {
 }
 var learning_block = {
   timeline: [
-    fixation_trial,learning_trial
+    fixation_trial,learning_trial, updateProgress,
   ],
   on_timeline_start: function(){
     if (expdef.keyMode!="mouse"){
@@ -516,44 +572,159 @@ var learning_block = {
   }
 }
 
-var preblock_trial = {
-    type: jsPsychHtmlKeyboardResponse,
-    on_start: function(){
-      d3.select(stimdef.idMain).attr('opacity', '0')
-      d3.select(stimdef.idFixation).attr('opacity', '0')
-      if (stimdef.blockTypes[progress.bNum].phase=='learn'){
-        progress.barUpdate=true
-      }
-      if (!progress.barUpdate){
-        d3.select(stimdef.idProgress).attr('opacity', '0')
-        d3.select(stimdef.idProgressFrame).attr('opacity', '0')
-      } else {
-        d3.select(stimdef.idProgress).attr('opacity', '1')
-        d3.select(stimdef.idProgressFrame).attr('opacity', '1')
-      }
-    },
-    stimulus: function(){
-      console.log(stimdef.blockTypes[progress.bNum].images)
-      htmlString="<div class='jspsych-row-simple' style='text-align:center'>"
-      htmlString+=`<p>${lang.preblock_box1}<br></p>`
-      htmlString+="</div><div class='jspsych-image-container'>"
-      stimdef.blockTypes[progress.bNum].images.forEach((img,imgidx)=>{
-        htmlString+=`<img src=${img} alt=${imgidx}/>`
+
+var instruction_show = {
+  type: jsPsychFlexInstruction,
+  content: function () {
+    return instruction_list[instruction_idx];
+  },
+  trialTag: function () {
+    return "instruction-show";
+  },
+  on_finish: function(){
+    if (instruction_idx<instruction_list.length){
+      instruction_idx+=1
+    }
+  },
+  on_start: function(){
+    if (instruction_list[instruction_idx].min_duration){
+      createD3Timer(instruction_list[instruction_idx].min_duration/1000, ()=>{d3.select("#d3-timer").remove()},{selector:"#"+expdef.jspsychParentDiv})
+    }
+  }
+};
+
+var instruction_check = {
+  type: jsPsychFlexQuestion,
+  content: function () {
+    return lang.welcome_check;
+  },
+  trialTag: function () {
+    return "instruction-check";
+  },
+  on_finish: function(trialdata){
+    if (trialdata.correct==1){
+      instruction_checked=true
+    }
+  },
+};
+
+var instruction_list
+var instruction_idx=0;
+var instruction_checked=false;
+var instructions_timeline={
+  timeline:[instruction_show,instruction_show,instruction_check],
+  on_timeline_start: function(){
+    instruction_list=[lang.welcome1_show, lang.welcome2_show]
+  },
+  loop_function: function(){
+    if (instruction_checked){
+      return false
+    } else {
+      instruction_idx=0
+      return true
+    }
+  }
+}
+var training_show = {
+  type: jsPsychFlexInstruction,
+  content: function () {
+    return lang.training_show;
+  },
+  trialTag: function () {
+    return "training-show";
+  },
+  on_start: function(){
+    if (lang.training_show.min_duration){
+        createD3Timer(lang.training_show.min_duration/1000, ()=>{d3.select("#d3-timer").remove()},{selector:"#"+expdef.jspsychParentDiv})
+    }
+  }
+};
+
+var premain_show = {
+  type: jsPsychFlexInstruction,
+  content: function () {
+    return lang.main_show;
+  },
+  trialTag: function () {
+    return "premain-show";
+  },
+  on_finish:  function(){
+    progress.barUpdate=true;
+  },
+  on_start: function(){
+    if (lang.training_show.min_duration){
+        createD3Timer(lang.main_show.min_duration/1000, ()=>{d3.select("#d3-timer").remove()},{selector:"#"+expdef.jspsychParentDiv})
+    }
+  }
+};
+
+var final_show = {
+  type: jsPsychFlexInstruction,
+  on_start: function(){
+    var interaction_data = jsPsych.data.getInteractionData();
+    interaction_data.trialTag = 'interactionData';
+    jsPsych
+      .data
+      .get()
+      .push(interaction_data);
+    sendDataFromIndexedDB('trials',expdef).then(()=>{
+      d3.select("#main-customhtml").remove()
+      jsPsych.finishTrial({})
+    })
+  },
+  content: function () {
+    return lang.final_show;
+  },
+  trialTag: function () {
+    return "final-show";
+  },
+};
+
+var end_show = {
+  type: jsPsychFlexInstruction,
+  content: function () {
+    return lang.end_show;
+  },
+  trialTag: function () {
+    return "end-show";
+  },
+  on_finish: function(){
+    socket.disconnect()
+    if (expdef.hasProperty('profilic_id')){
+      fetch(`${baseUrl}/api/getEnv`)
+      .then(res=>res.json())
+      .then(data => {
+        window.location.href = `https://app.prolific.com/submissions/complete?cc=${data.prolificCode}`;
       })
-      htmlString+="</div>"
-      htmlString+="<div class='jspsych-row-simple' style='text-align:center'>"
-      htmlString+=`<p>${lang.preblock_box2}</p>`
-      htmlString+="</div>"
-      return htmlString
-    },
-    choices: "ALL_KEYS",
-    trial_duration: expdef.timings.instructions.preblockDur
-};  
+    }
+  }
+};
+
+var preblock_show = {
+  type: jsPsychFlexInstruction,
+  content: function () {
+    return lang.preblock_show;
+  },
+  trialTag: function () {
+    return "preblock-show";
+  },
+  inputArray: function(){
+   return [`<div class="jspsych-image-container">${stimdef.blockTypes[progress.bNum].images.map(src => `<img src="${src}">`).join('')}</div>`]
+  },
+  on_start: function(){
+    createD3Timer(expdef.timings.preblock.timerDur/1000, ()=>{d3.select("#d3-timer").remove()},{selector:"#"+expdef.jspsychParentDiv})
+  }
+};
+
+var main_training = {
+  timeline: [preblock_show, loadSVG_func, learning_block, unloadSVG],
+  on_timeline_finish: function () {
+    document.body.style.cursor = 'pointer';
+  },
+}
 
 var main_learning = {
-  timeline: [
-    preblock_trial, loadSVG_func, learning_block
-  ],
+  timeline: [preblock_show, loadSVG_func, learning_block, unloadSVG],
   on_timeline_finish: function () {
     //start_progress_width = Number(d3.select(stimdef.idProgress).attr('width'));
     document.body.style.cursor = 'pointer';
@@ -570,7 +741,10 @@ var main_learning = {
 ////////////////////////////////////////////////////////////////////
 //// Assemble timeline(s)
 ////////////////////////////////////////////////////////////////////
-main_timeline=[browsercheck_trial, trial_preload,main_learning]
+//const main_timeline=[browsercheck_trial, trial_preload, enter_fullscreen, instructions_timeline, training_show, main_training, premain_show,main_learning, exit_fullscreen]
+const main_timeline=[browsercheck_trial, trial_preload, premain_show,main_learning, exit_fullscreen]
+
+//const main_timeline=[browsercheck_trial, trial_preload, final_show,end_show]
 
 var script = document.createElement('script');
 script.onload = function () {
@@ -597,19 +771,16 @@ async function main() {
     var ready=true
     for (const key in progress.fetched){
       ready=ready & progress.fetched[key]
-      console.log(ready)
     }
     return ready
   });
   try {
-    random_subjectId = await getCurrentUser()
+    expdef.subjectId = await getCurrentUser()
   } catch {
     console.log("No logged user")
   }
-  expdef.subjectId=random_subjectId
-  stimdef.subjectId=random_subjectId
-  progress.subjectId=random_subjectId
-  console.log("current user",random_subjectId)
+  stimdef.subjectId=expdef.subjectId
+  progress.subjectId=expdef.subjectId
   // expdef query
   var query_results=[]
   try {
@@ -619,12 +790,29 @@ async function main() {
     console.error('Error fetching data:', error);
   }
   if (query_results.length==0){
-    addItem('expdef', expdef);
     addItem('stimdef', stimdef);
     addItem('progress', progress);
+    addExpdef(expdef);
   }
-  socket.emit('expdef', expdef);
-  socket.emit('stimdef', stimdef);
+  jsPsych.data.addProperties({
+    subjectId: expdef.subjectId,
+    sessionId: expdef.sessionId,
+    studyId: expdef.studyId,
+    experimentName: 'RLWM',
+    sent: 0,
+  });
+  if (expdef.env.CONTEXT=='local'){
+    if (!socket){
+      socket = io(baseUrl);
+    }
+    socket.on("syncRequest", (data, ack) => {
+      // Respond with some data
+      ack({experimentMS: performance.now() });
+    });
+    socket.emit('expdef', expdef);
+    socket.emit('stimdef', stimdef);
+  }
+
   console.log("Done fetching!");
   jsPsych.run(main_timeline)
 }

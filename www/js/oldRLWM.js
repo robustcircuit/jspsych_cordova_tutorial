@@ -1,53 +1,9 @@
-<!DOCTYPE html>
-<html>
-
-<head>
-  <script src="./js/jspsych/jspsych.js"></script>
-  <script src="./js/jspsych/plugin-preload.js"></script>
-  <script src="./js/jspsych/plugin-fullscreen.js"></script>
-  <script src="./js/jspsych_addons/plugin-external-html-improved.js"></script>
-  <script src="./js/jspsych/plugin-browser-check.js"></script>
-  <script src="./js/jspsych/plugin-call-function.js"></script>
-  <script src="./js/jspsych/plugin-html-keyboard-response.js"></script>
-  <script src="./js/jspsych_addons/plugin-svg-fixation.js"></script>
-  <script src="./js/RLWM/plugin-RLWMlearning.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
-  <script src="cordova.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
-  <script src="js/index.js"></script>
-  <script src="js/socket.io.js"></script>
-  <script
-			  src="https://code.jquery.com/jquery-3.7.1.js"
-			  integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4="
-			  crossorigin="anonymous">
-  </script>
-  <link rel="stylesheet" href="./js/jspsych/jspsych.css">
-  <link rel="stylesheet" href="./css/custom_jspsych.css">
 
 
-</head>
-
-<body></body>
-
-<script>
-
-  const socket = io("https://192.168.1.41:3000");
-
-  socket.on("error", (error) => {
-    console.log("socket connection problem");
-  });
-
-  socket.on("connect", (e) => {
-    console.log("socket connected");
-  });
-
-  socket.on("syncRequest", (data, ack) => {
-    // Respond with some data
-    ack({experimentMS: performance.now() });
-  });
+  const jspsychParentDiv='jspsych-body'
 
   var jsPsych = initJsPsych({
+    display_element: jspsychParentDiv,
     on_trial_finish: function(data) {
       // send trial to db
     },
@@ -126,7 +82,7 @@
   
   // check platform
   if (typeof cordova!=='undefined' && cordova?.platformId=='android'){
-    const accelDisplay = d3.select("body")
+    const accelDisplay = d3.select('#'+jspsychParentDiv)
     .append("div")
     .attr("id", "accel-display")
     .style("position", "fixed")
@@ -226,7 +182,6 @@
   stimdef.blockTypes = trainingBlock.concat(stimdef.blockTypes); // join them back
 
   // assign images to each block, create path array for preloading and construct pseudorandomized trial list for each block)
-  fetch(`https://192.168.1.41:3000/api/getFiles?folder=${folder_path}`)
   stimdef.imagesPreloadPaths=[]
   expdef.totaltrialNum=0
   expdef.maxReward=0
@@ -353,7 +308,7 @@
       }
       Promise
         .all([
-          d3.select('body')
+          d3.select('#'+jspsychParentDiv)
           .append('div')
           .attr('id', 'jspsych-svg')
           .style('position', 'absolute')
@@ -429,8 +384,8 @@
     },
     on_finish: function () {
       if (expdef.mobileSession) {
-        expdef.screen.width=
-        expdef.screen.height=
+        expdef.screen.width=1080
+        expdef.screen.height=1920
         screen.orientation.lock("portrait");
       }
     },
@@ -452,10 +407,8 @@
     on_finish: function (data) {
       expdef.mobileSession = data.mobile;      
       if (expdef.mobileSession) {
-        expdef.screen.width=1080
-        expdef.screen.height=1920
         expdef.keyMode = 'touch'
-      }      
+      }
       stimdef.pathLearningTrial=`assets/RLWM/learningtrial_${expdef.screen.width}x${expdef.screen.height}.svg`
       progress.currentSVG=stimdef.pathLearningTrial
       jsPsych
@@ -640,13 +593,25 @@
       addItem('stimdef', stimdef);
       addItem('progress', progress);
     }
+    /*
+    const socket = io("https://192.168.1.41:3000");
+
+    socket.on("error", (error) => {
+      console.log("socket connection problem");
+    });
+
+    socket.on("connect", (e) => {
+      console.log("socket connected");
+    });
+
+    socket.on("syncRequest", (data, ack) => {
+      // Respond with some data
+      ack({experimentMS: performance.now() });
+    });
     socket.emit('expdef', expdef);
     socket.emit('stimdef', stimdef);
+    */
     console.log("Done fetching!");
     jsPsych.run(main_timeline)
   }
   main()
-
-</script>
-
-</html>

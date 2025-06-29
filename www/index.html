@@ -19,14 +19,16 @@
         <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-auth-compat.js"></script>
         <script src="cordova.js"></script>
-        <script src="js/index.js"></script>
         <script src="js/socket.io.js"></script>
-              
         <script src="js/d3.v7.js"></script>
+        <script src="js/index.js"></script>
         <script src="js/bootstrap.bundle.min.js"></script>
+        <link rel="stylesheet" href="js/jspsych/jspsych.css">
+        <link rel="stylesheet" href="js/jspsych_addons/jspsych_addons.css">
     </head>
 
     <body>
+        <div class="appdiv d-flex flex-column min-vh-100">
         <!-- Navigation bar shown only when logged in -->
         <nav id="nav-bar" class="navbar navbar-expand-lg navbar-light bg-light d-none">
             <div class="container-fluid">
@@ -42,7 +44,7 @@
                 <button class="btn btn-outline-danger" onclick="logout()">Logout</button>
             </div>
         </nav>
-        <div id="jspsych-body" class="d-none">
+        <div id="jspsych-body" class="flex-grow-1 d-none overflow-auto">
         </div>
 
         <!-- Auth container shown only when logged out -->

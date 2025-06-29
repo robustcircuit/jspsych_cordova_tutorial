@@ -2,19 +2,43 @@ var jsPsychFlexInstruction = (function (jspsych) {
   'use strict';
   const info = {
     name: "FlexSurvey",
+    data: {
+      response: {
+        type: jspsych.ParameterType.INT,
+      },
+      rt:{
+        type: jspsych.ParameterType.FLOAT,
+      },
+      timeOnset: {
+        type: jspsych.ParameterType.FLOAT,
+      }
+    },
     parameters: {
       content: {
-        default: null,
+        default: {},
+        type: jspsych.ParameterType.COMPLEX,
+        array: false,
+        pretty_name: "instructionObject",
+      },
+      trialTag: {
+        default: "instruction",
         type: jspsych.ParameterType.STRING,
         array: false,
-        pretty_name: "instruction-object",
+        pretty_name: "trialTag",
+
       },
-      min_duration: {
-        default: 2000,
-        type: jspsych.ParameterType.STRING,
+      defaultResponse:{
+        default: 1,
+        type: jspsych.ParameterType.INT,
         array: false,
-        pretty_name: "mean-duration",
+        pretty_name: "defaultResponse",
       },
+      inputArray:{
+        default: [],
+        type: jspsych.ParameterType.STRING,
+        array: true,
+        pretty_name: "inputArray",       
+      }
     },
   };
 
@@ -36,57 +60,159 @@ var jsPsychFlexInstruction = (function (jspsych) {
 
       // initialize variables and modules
       var keyboardListener
-      var trialdata = []; // Object.assign({}, trial);
 
-      d3.select("#jspsych-content")
+      var trialdata = {
+        response: trial.defaultResponse,
+        rt: -1.0,
+        timeOnset:performance.now()
+      };
+      var min_duration=10
+      if (trial.content.hasOwnProperty('min_duration')){
+        min_duration=trial.content.min_duration
+      }
+
+      console.log(trial.content)
+
+      var displayElement="#"+jsPsych.getDisplayContainerElement().id;
+
+      d3.select(displayElement)
         .append('div')
         .attr('class', 'jspsych-custom-html')
-        .attr('id', 'mainhtml')     
-        .style('position', 'relative')
-        .style('width', '100%')  
-        .style('height', '100%')  
-        .style('left', 0)
-        .style('top', 0)
+        .attr('id', 'main-customhtml')     
         .style('align-items','center')
         .style('margin', 'auto')
 
 
+      var mainhtml = d3.select('#main-customhtml')
 
-      var mainhtml = d3.select('#mainhtml')
-
-      mainhtml.append('div')
-        .attr('class', 'jspsych-survey-title')
-        .attr('id', 'title')
-        .html(trial.content.title)
+      if (trial.content.hasOwnProperty('title')) {
+        mainhtml.append('div')
+          .attr('class', 'jspsych-title')
+          .attr('id', 'custom-title')
+          .html(trial.content.title)
+      }
 
       for (var i = 0; i < trial.content.divs.length; i++) {
-        console.log(trial.content.divs[i])
-        if (trial.content.divs[i].hasOwnProperty('text')) {
+        if (!trial.content.divs[i].hasOwnProperty('inputArrayIdx')){
           mainhtml.append('div')
-            .attr('class', 'jspsych-text-simple')
-            .attr('id', 'text' + i)
-            .html(trial.content.divs[i].text)
+            .attr('class', trial.content.divs[i].class)
+            .attr('id', 'box' + i)
+            .html(trial.content.divs[i].html)
+        } else {
+          mainhtml.append('div')
+            .attr('class', trial.content.divs[i].class)
+            .attr('id', 'box' + i)
+            .html(trial.inputArray[trial.content.divs[i].inputArrayIdx])          
         }
 
       }
 
-      trialdata = [];
-      trialdata.displayTime=performance.now();
+      if ((trial.content.hasOwnProperty('next')) | (trial.content.hasOwnProperty('back'))){
+        d3.select(displayElement).append('div')
+        .attr('class', 'lowerbar')
+        .attr('id', 'lowerbar')     
+        .style('align-items','center')
+      }
+      if (trial.content.hasOwnProperty('back')) {
+        d3.select("#lowerbar").append('div')
+        .attr('class', 'jspsych-back')
+        .attr('id', 'back-button')
+        .html(trial.content.back)
+        .style('visibility', 'hidden')
+      }  
+      if (trial.content.hasOwnProperty('next')) {
+        d3.select("#lowerbar").append('div')
+        .attr('class', 'jspsych-next')
+        .attr('id', 'next-button')
+        .html(trial.content.next)
+        .style('visibility', 'hidden')
+      }    
 
-      mainhtml.append('div')
-      .attr('class', 'jspsych-survey-continue')
-      .attr('id', 'continue')
-      .html(trial.content.continue)
-      .style('visibility', 'hidden')
-      .on('mousedown', function(){
-        trialdata.RT = performance.now()-trialdata.displayTime;
-        d3.select("#mainhtml").remove()
+      // collect response and finish trial
+      function getResponse(key){
+        jsPsych.pluginAPI.clearAllTimeouts();
+        jsPsych.pluginAPI.cancelAllKeyboardResponses(keyboardListener);
+        trialdata.rt=performance.now() - trialdata.timeOnset;
+        if (key.key == expdef.keyBack) {
+          trialdata.response = -1;
+        } else if (key.key == expdef.keyNext) {
+          trialdata.response = 1;
+        }
+        mainhtml.remove()
+        d3.select("#lowerbar").remove()
+        if ((expdef.keyMode != 'mouse') & (expdef.instructionMouse)){
+          d3.select(displayElement).on('mousedown', null)
+        } else if (expdef.keyMode == 'touch'){
+          d3.select(displayElement).on('touch', null)
+        }
         jsPsych.finishTrial(trialdata)
-      })
+      }
 
+      // if a max_duration has been set, force trial end when it elapses
+      if (trial.content.hasOwnProperty('max_duration')){
+        jsPsych.pluginAPI.clearAllTimeouts();
+        jsPsych.pluginAPI.cancelAllKeyboardResponses(keyboardListener);
+        jsPsych.pluginAPI.setTimeout(() => {
+          mainhtml.remove()
+          d3.select("#lowerbar").remove()
+          if ((expdef.keyMode != 'mouse') & (expdef.instructionMouse)){
+            d3.select(displayElement).on('mousedown', null)
+          } else if (expdef.keyMode == 'touch'){
+            d3.select(displayElement).on('touch', null)
+          }
+          jsPsych.finishTrial(trialdata)
+        }, trial.content.max_duration);
+      }
+
+      // locate touch / mouse
+      function checkHitEvent(pt,type) {
+        var touchinfo = {};
+        if (trial.content.hasOwnProperty('next')) {
+          var nextBB = document.getElementById('next-button').getBoundingClientRect();
+          if (pt.x > nextBB.x && pt.x < (nextBB.x + nextBB.width) && pt.y > nextBB.y && pt.y < (nextBB.y + nextBB.height)) {
+              touchinfo.key = expdef.keyNext;
+              d3.select(displayElement).on(type, null)
+              getResponse(touchinfo)                    
+          }
+        }
+        if (trial.content.hasOwnProperty('back')) {
+          console.log(trial.content.hasOwnProperty('back'))
+          var backBB = document.getElementById('back-button').getBoundingClientRect();
+          if (pt.x > backBB.x && pt.x < (backBB.x + backBB.width) && pt.y > backBB.y && pt.y < (backBB.y + backBB.height)) {
+            touchinfo.key = expdef.keyBack;
+            d3.select(displayElement).on(type, null)
+            getResponse(touchinfo)
+          }
+        }
+      }
+
+      // wait for response      
       jsPsych.pluginAPI.setTimeout(()=>{
-        d3.select("#continue").style('visibility', 'visible')
-      }, trial.min_duration)
+        d3.select("#next-button").style('visibility', 'visible')
+        d3.select("#back-button").style('visibility', 'visible')
+        // response management
+        if (expdef.keyMode == 'keyboard') {
+          keyboardListener = jsPsych.pluginAPI.getKeyboardResponse({
+            callback_function: getResponse,
+            valid_responses: expdef.keyCodes,
+            rt_method: "performance",
+            persist: false,
+            allow_held_key: false,
+          })
+        }
+        if (expdef.keyMode == 'touch'){
+          d3.select(displayElement).on("touchstart", function (touchevent) {
+            var pt = {x:touchevent.touches[0].clientX,y:touchevent.touches[0].clientY}         
+            checkHitEvent(pt,'touchstart')
+          })
+        }
+        if ((expdef.keyMode == 'mouse') | (expdef.instructionMouse)) {
+          d3.select(displayElement).on("mousedown", function (mouseevent) {
+            var pt = {x:mouseevent.clientX,y:mouseevent.clientY}    
+            checkHitEvent(pt,'mousedown')
+          });
+        }    
+      }, min_duration)
 
 
     }
