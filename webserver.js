@@ -53,12 +53,6 @@ db.once("open", function callback() {
   console.log("database opened");
 });
 
-
-const sslOptions = {
-  key: fs.readFileSync(path.join(__dirname, 'ssl', 'server.key')),
-  cert: fs.readFileSync(path.join(__dirname, 'ssl', 'server.cert')),
-};
-
 // Serve Cordova browser build
 app.use(express.static(path.join(__dirname, 'www')));
 

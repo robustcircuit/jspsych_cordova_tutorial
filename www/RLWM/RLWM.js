@@ -31,7 +31,7 @@ var expdef={
   env: {CONTEXT: 'web'},
   sent: 0,
   // general settings
-  nrepeats:3,
+  nrepeats:10,
   toleranceAvgDistanceRepetition:0.25,
   feedbackValues: [1,2],
   keyMode: 'keyboard',
