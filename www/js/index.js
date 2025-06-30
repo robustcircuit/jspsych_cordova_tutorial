@@ -23,6 +23,13 @@
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 
+var language="english"
+if (urlParams.has('LANGUAGE')) {
+    language = urlParams.get('LANGUAGE');
+} else if (urlParams.has('LANG')) {
+    language = urlParams.get('LANG');
+}
+
 function uuid16Base64() {
   const bytes = crypto.getRandomValues(new Uint8Array(12));
   return btoa(String.fromCharCode(...bytes))
@@ -388,13 +395,26 @@ async function launchExperiment(expName){
     })
     .then(async expSpecs => {
         await Promise.all(expSpecs.styles.map(loadStyle))
-        for (const src of expSpecs.globalModules) {
-            await loadScript(src);
+        if (("jsModules" in expSpecs) & (expSpecs.jsModules.length>0)){
+            for (const src of expSpecs.jsModules) {
+                await loadScript(src);
+            }
         }
-        for (const src of expSpecs.specificModules) {
-            await loadScript(expName+'/'+src);
+        if (("languages" in expSpecs) & (expSpecs.languages.length>0)){
+            for (const src of expSpecs.languages) {
+                await loadScript(src);
+            }
+        }
+        if (urlParams.has('TASK') & urlParams.has('RUN_MODE')){
+            const runMode = urlParams.get('RUN_MODE')
+            if ((runMode=='simulation') & ("pythonModules" in expSpecs) & (expSpecs.pythonModules.length>0)){
+                for (const src of expSpecs.pythonModules) {
+                    await loadScript(expName+'/'+src);
+                }
+            }
         }
         await loadScript(expName+'/'+expSpecs.experimentScript);
+        runExperiment()
     })
     .catch(error => {
         console.error(`Error loading ${expName}.json: `, error);

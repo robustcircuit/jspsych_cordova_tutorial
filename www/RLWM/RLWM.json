@@ -1,10 +1,7 @@
 {
     "styles": [
     ],
-    "specificModules": [
-      "js/plugin-RLWMlearning.js"
-    ],
-    "globalModules": [
+    "jsModules": [
       "js/jspsych/jspsych.js",
       "js/jspsych/plugin-preload.js",
       "js/jspsych/plugin-fullscreen.js",
@@ -15,7 +12,16 @@
       "js/jspsych_addons/plugin-svg-fixation.js",
       "js/jspsych_addons/plugin-flex-instruction.js",
       "js/jspsych_addons/plugin-flex-question.js",
-      "js/d3timer.js"
+      "js/jspsych_addons/plugin-external-html-improved.js",
+      "js/d3timer.js",
+      "RLWM/js/plugin-RLWMlearning.js"
     ],
-    "experimentScript": "RLWM.js"
+    "pythonModules":[
+      "https://pyscript.net/latest/pyscript.css",
+      "https://pyscript.net/latest/pyscript.js"
+    ],
+    "languages": [
+      "RLWM/languages/lang.english.js"
+    ],
+    "experimentScript": "RLWMfunc.js"
 }

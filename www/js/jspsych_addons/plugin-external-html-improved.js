@@ -128,7 +128,7 @@ var jsPsychExternalHtml = (function (jspsych) {
                         display_element.querySelector("#" + trial.cont_btn).addEventListener("click", finish);
                     }
                     if (trial.cont_key) {
-                        jsPsych.pluginAPI.setTimeout(function () {
+                        this.jsPsych.pluginAPI.setTimeout(function () {
                             if (trial.response_device == 'keyboard') {
                                 keyboardListener = this.jsPsych.pluginAPI.getKeyboardResponse({
                                     callback_function: key_listener,

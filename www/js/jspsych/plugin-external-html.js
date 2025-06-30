@@ -135,6 +135,7 @@ var jsPsychExternalHtml = (function (jspsych) {
     }
     simulate_data_only(trial, simulation_options) {
       const data = this.create_simulation_data(trial, simulation_options);
+      console.log(data)
       this.jsPsych.finishTrial(data);
     }
     simulate_visual(trial, simulation_options, load_callback) {

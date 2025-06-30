@@ -97,10 +97,8 @@ app.head('/api/uploadData', (req, res) => {
 });
 
 app.post('/api/uploadData', async (req, res) => {
-  console.log(req.body)
   if (req.body.type=='trials'){
     req.body.data.forEach((trial)=>{
-        console.log(trial)
         models[trial.experimentName].create(trial);
     })
   } else {
@@ -110,7 +108,6 @@ app.post('/api/uploadData', async (req, res) => {
 });
 
 app.get('/api/getProfilic', async (req, res) => {
-  console.log(req.body)
   if (req.body.type=='trials'){
     req.body.data.forEach((trial)=>{
         console.log(trial)
@@ -158,6 +155,9 @@ io.on('connection', (socket) => {
       }
     }
   });   
+  socket.on('simulationData', (data) => {
+    console.log(data)
+  });  
 });
 
 

@@ -70,8 +70,19 @@ var jsPsychFlexQuestion = (function (jspsych) {
         type: jspsych.ParameterType.STRING,
         array: false,
         pretty_name: "question-chosenColor",
-      }
-    }
+      },
+      expdef:{
+        type: jspsych.ParameterType.COMPLEX,
+        array: false,
+        pretty_name: "expdef",       
+      },
+      stimdef:{
+        type: jspsych.ParameterType.COMPLEX,
+        array: false,
+        pretty_name: "stimdef",       
+      },   
+    },
+    
   };
 
   /**
@@ -90,6 +101,8 @@ var jsPsychFlexQuestion = (function (jspsych) {
 
     trial(display_element, trial) {
 
+        const jsPsych=this.jsPsych
+
         // initialize variables and modules
         var keyboardListener
 
@@ -105,7 +118,7 @@ var jsPsychFlexQuestion = (function (jspsych) {
         min_duration=trial.content
         }
 
-        var displayElement="#"+jsPsych.getDisplayContainerElement().id;
+        var displayElement="#"+trial.expdef.jspsychParentDiv;
 
         /*
         const wrapper = document.querySelector('.jspsych-content-wrapper');
@@ -216,13 +229,13 @@ var jsPsychFlexQuestion = (function (jspsych) {
             }
         }
 
-        if (expdef.keyMode == 'touch'){
+        if (trial.expdef.keyMode == 'touch'){
             d3.select(displayElement).on("touchstart", function (touchevent) {
             var pt = {x:touchevent.touches[0].clientX,y:touchevent.touches[0].clientY}         
             checkHitEvent(pt,'touchstart')
             })
         }
-        if ((expdef.keyMode == 'mouse') | (expdef.instructionMouse)) {
+        if ((trial.expdef.keyMode == 'mouse') | (trial.expdef.instructionMouse)) {
             d3.select(displayElement).on("mousedown", function (mouseevent) {
             var pt = {x:mouseevent.clientX,y:mouseevent.clientY}    
             checkHitEvent(pt,'mousedown')

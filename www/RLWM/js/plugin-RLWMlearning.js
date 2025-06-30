@@ -65,14 +65,24 @@ var jsPsychRLWMlearning = (function (jspsych) {
         pretty_name: "timings",
         array: false,
         default: "timings",           
-      }
+      },
+      expdef:{
+        type: jspsych.ParameterType.COMPLEX,
+        array: false,
+        pretty_name: "expdef",       
+      },
+      stimdef:{
+        type: jspsych.ParameterType.COMPLEX,
+        array: false,
+        pretty_name: "stimdef",       
+      },   
     },
   };
   /**
    * Custom plugin built for the RLWM paradigm by Collins and colleagues
-   * It uses fields from global objects stimdef.RLWMlearning, expdef and lang to manipulate dynamically 
+   * It uses fields from global objects trial.stimdef.RLWMlearning, trial.expdef and lang to manipulate dynamically 
    * ab SVG file (already displayed on screen) and containing specific elements
-   * defined as stimdef.RLWMlearning.idXXXXX (see main RLWM.html experiment page)
+   * defined as trial.stimdef.RLWMlearning.idXXXXX (see main RLWM.html experiment page)
    * @author Romain Ligneul
    */
 
@@ -88,116 +98,119 @@ var jsPsychRLWMlearning = (function (jspsych) {
 
     trial(display_element, trial) {
 
+      const jsPsych=this.jsPsych
+
+
+      console.log('trial params', trial)
       // initialize variables and modules
       var keyboardListener
-
       var trialdata = {
-        keyResponse: -1,
-        correct: -1,
-        rt:-1,
-        feedback: -1,
-        timeOnset: -1,
-        timeFadeIn: -1,
-        timeOffset: -1,
-        trialTag: info.name,
-        trialMode: trial.trialMode,
+          keyResponse: -1,
+          correct: -1,
+          rt:-1,
+          feedback: -1,
+          timeOnset: -1,
+          timeFadeIn: -1,
+          timeOffset: -1,
+          trialTag: info.name,
+          trialMode: trial.trialMode,
       }
 
       // hide display and fixation
-      d3.select(stimdef.idMain).attr('opacity', '0.001')
+      d3.select(trial.stimdef.idMain).attr('opacity', '0.001')
 
       // reset state of the SVG
-      for (let i = 0; i < stimdef.RLWMlearning.idFeedback.length; i++) {
-        d3.select(stimdef.RLWMlearning.idFeedback[i]).attr('opacity', '0.001')
-        d3.select(stimdef.RLWMlearning.idFeedbackText[i]).text(lang.textFeedback[i])
-        d3.select(stimdef.RLWMlearning.idFeedbackText[i]).attr("x", parseFloat(d3.select(stimdef.RLWMlearning.idFeedbackRect[i]).attr('x'))+parseFloat(0.5*d3.select(stimdef.RLWMlearning.idFeedbackRect[i]).attr('width')))
-        d3.select(stimdef.RLWMlearning.idFeedbackText[i]).attr("width",d3.select(stimdef.RLWMlearning.idFeedbackRect[i]).attr('width'))
-        d3.select(stimdef.RLWMlearning.idFeedbackText[i]).attr("text-anchor", "middle")
+      for (let i = 0; i < trial.stimdef.RLWMlearning.idFeedback.length; i++) {
+        d3.select(trial.stimdef.RLWMlearning.idFeedback[i]).attr('opacity', '0.001')
+        d3.select(trial.stimdef.RLWMlearning.idFeedbackText[i]).text(lang.textFeedback[i])
+        d3.select(trial.stimdef.RLWMlearning.idFeedbackText[i]).attr("x", parseFloat(d3.select(trial.stimdef.RLWMlearning.idFeedbackRect[i]).attr('x'))+parseFloat(0.5*d3.select(trial.stimdef.RLWMlearning.idFeedbackRect[i]).attr('width')))
+        d3.select(trial.stimdef.RLWMlearning.idFeedbackText[i]).attr("width",d3.select(trial.stimdef.RLWMlearning.idFeedbackRect[i]).attr('width'))
+        d3.select(trial.stimdef.RLWMlearning.idFeedbackText[i]).attr("text-anchor", "middle")
       }
-      for (let i = 0; i < stimdef.RLWMlearning.idRespBoxes.length; i++) {
-        d3.select(stimdef.RLWMlearning.idRespBoxes[i]).style('fill-opacity', stimdef.RLWMlearning.idRespBoxesOpacity[0])
+      for (let i = 0; i < trial.stimdef.RLWMlearning.idRespBoxes.length; i++) {
+        d3.select(trial.stimdef.RLWMlearning.idRespBoxes[i]).style('fill-opacity', trial.stimdef.RLWMlearning.idRespBoxesOpacity[0])
         if (trial.trialMode=="test2"){
-          d3.select(stimdef.RLWMlearning.idRespBoxes[i]).attr('opacity', '0.001')
-          d3.select(stimdef.RLWMlearning.idRespBoxesText[i]).attr('opacity', '0.001')
+          d3.select(trial.stimdef.RLWMlearning.idRespBoxes[i]).attr('opacity', '0.001')
+          d3.select(trial.stimdef.RLWMlearning.idRespBoxesText[i]).attr('opacity', '0.001')
           if (d3.select("#slider").empty()){
             d3.select("#jspsych-content").append('div')
             .html('<input type="range" min="1" max="100" value="50" class="multislider" id="myRange">')
           }
         } else {
-          d3.select(stimdef.RLWMlearning.idRespBoxesText[i]).attr('opacity', '0.001')
+          d3.select(trial.stimdef.RLWMlearning.idRespBoxesText[i]).attr('opacity', '0.001')
         }
-        d3.select(stimdef.RLWMlearning.idRespBoxes[i]).style('stroke-width', 1.5)     
+        d3.select(trial.stimdef.RLWMlearning.idRespBoxes[i]).style('stroke-width', 1.5)     
       }
 
       // load image
-      d3.select(stimdef.RLWMlearning.idTargetLearning).attr('xlink:href', trial.imagePath)
-      d3.select(stimdef.RLWMlearning.idTargetLearning).style('opacity','1');
+      d3.select(trial.stimdef.RLWMlearning.idTargetLearning).attr('xlink:href', trial.imagePath)
+      d3.select(trial.stimdef.RLWMlearning.idTargetLearning).style('opacity','1');
 
       // display image and start response listener
       trialdata.timeOnset = performance.now();
-      d3.select(stimdef.idMain).transition().duration(trial.timings.fadeInDur).attr('opacity', '1').on("end", () => {
+      d3.select(trial.stimdef.idMain).transition().duration(trial.expdef.timings.RLWMlearning.fadeInDur).attr('opacity', '1').on("end", () => {
         trialdata.timeFadeIn = performance.now();
         // wait for participant response
-        if (expdef.keyMode == 'keyboard') {
+        if (trial.expdef.keyMode == 'keyboard') {
           // start the keyboard listener
           keyboardListener = jsPsych.pluginAPI.getKeyboardResponse({
             callback_function: getResponse,
-            valid_responses: expdef.keyCodes,
+            valid_responses: trial.expdef.keyCodes,
             rt_method: "performance",
             persist: false,
             allow_held_key: false,
           })
         }
         // OR start the serial listener
-        else if (expdef.keyMode == 'serial') {
+        else if (trial.expdef.keyMode == 'serial') {
           socket.once('serialstring', function (e) {
             // to be implemented
           })
-        } else if ((expdef.keyMode == 'touch') | (expdef.keyMode == 'mouse')) {
+        } else if ((trial.expdef.keyMode == 'touch') | (trial.expdef.keyMode == 'mouse')) {
           function checkHitEvent(svgP) {
             var touchinfo = {};
-            var leftBB = d3.select(stimdef.RLWMlearning.idRespBoxes[0]).node().getBBox();
-            var centerBB = d3.select(stimdef.RLWMlearning.idRespBoxes[1]).node().getBBox();
-            var rightBB = d3.select(stimdef.RLWMlearning.idRespBoxes[2]).node().getBBox();
+            var leftBB = d3.select(trial.stimdef.RLWMlearning.idRespBoxes[0]).node().getBBox();
+            var centerBB = d3.select(trial.stimdef.RLWMlearning.idRespBoxes[1]).node().getBBox();
+            var rightBB = d3.select(trial.stimdef.RLWMlearning.idRespBoxes[2]).node().getBBox();
             if (svgP.x > leftBB.x && svgP.x < (leftBB.x + leftBB.width) && svgP.y > leftBB.y && svgP.y < (leftBB.y + leftBB.height)) {
-              touchinfo.key = expdef.keyCodes[0];
+              touchinfo.key = trial.expdef.keyCodes[0];
               touchinfo.rt = performance.now() - trialdata.timeOnset;
               getResponse(touchinfo)
             } else if (svgP.x > centerBB.x && svgP.x < (centerBB.x + centerBB.width) && svgP.y > centerBB.y && svgP.y < (centerBB.y + centerBB.height)) {
-              touchinfo.key = expdef.keyCodes[1];
+              touchinfo.key = trial.expdef.keyCodes[1];
               touchinfo.rt = performance.now() - trialdata.timeOnset;
               getResponse(touchinfo)
             } else if (svgP.x > rightBB.x && svgP.x < (rightBB.x + rightBB.width) && svgP.y > rightBB.y && svgP.y < (rightBB.y + rightBB.height)) {
-              touchinfo.key = expdef.keyCodes[2];
+              touchinfo.key = trial.expdef.keyCodes[2];
               touchinfo.rt = performance.now() - trialdata.timeOnset;
               getResponse(touchinfo)
             }
           }
-          if (expdef.keyMode=='touch'){
-            d3.select(stimdef.idMain).on("touchstart", function (touchevent) {
+          if (trial.expdef.keyMode=='touch'){
+            d3.select(trial.stimdef.idMain).on("touchstart", function (touchevent) {
               var pt = d3.select('#globalsvg').node().createSVGPoint();
                 pt.x = touchevent.touches[0].clientX;
                 pt.y = touchevent.touches[0].clientY;            
-              var svgP = pt.matrixTransform(d3.select(stimdef.idMain).node().getScreenCTM().inverse());
+              var svgP = pt.matrixTransform(d3.select(trial.stimdef.idMain).node().getScreenCTM().inverse());
               checkHitEvent(svgP)
-              d3.select(stimdef.idMain).on("touchstart", null)
+              d3.select(trial.stimdef.idMain).on("touchstart", null)
             })
           } else {
-            d3.select(stimdef.idMain).on("mousedown", function (mouseevent) {
+            d3.select(trial.stimdef.idMain).on("mousedown", function (mouseevent) {
               var pt = d3.select('#globalsvg').node().createSVGPoint();
               pt.x = mouseevent.clientX;
               pt.y = mouseevent.clientY;
               console.log(mouseevent)
-              var svgP = pt.matrixTransform(d3.select(stimdef.idMain).node().getScreenCTM().inverse());
+              var svgP = pt.matrixTransform(d3.select(trial.stimdef.idMain).node().getScreenCTM().inverse());
               checkHitEvent(svgP)
-              d3.select(stimdef.idMain).on("mousedown", null)
+              d3.select(trial.stimdef.idMain).on("mousedown", null)
             });
           }
         }
         // add in any case the response_timeout
         jsPsych.pluginAPI.setTimeout(() => {
           endTrial()
-        }, trial.timings.responseTimeout);
+        }, trial.expdef.timings.RLWMlearning.responseTimeout);
       })
 
       // get the response and display feedback
@@ -206,12 +219,12 @@ var jsPsychRLWMlearning = (function (jspsych) {
         jsPsych.pluginAPI.clearAllTimeouts();
         trialdata.rt=performance.now() - trialdata.timeOnset;
         // highlight choice made
-        if (respinfo.key == expdef.keyCodes[0]) {
+        if (respinfo.key == trial.expdef.keyCodes[0]) {
           trialdata.keyResponse = 0;
-        } else if (respinfo.key == expdef.keyCodes[1]) {
+        } else if (respinfo.key == trial.expdef.keyCodes[1]) {
           trialdata.keyResponse = 1;
 
-        } else if (respinfo.key == expdef.keyCodes[2]) {
+        } else if (respinfo.key == trial.expdef.keyCodes[2]) {
           trialdata.keyResponse = 2;
         }
         if (trialdata.keyResponse==trial.correctResponse){
@@ -223,66 +236,76 @@ var jsPsychRLWMlearning = (function (jspsych) {
         }
         // highlight briefly the response
         if (trial.trialMode!="test2"){
-          d3.select(stimdef.RLWMlearning.idRespBoxes[trialdata.keyResponse]).style('fill-opacity', stimdef.RLWMlearning.idRespBoxesOpacity[1])
+          d3.select(trial.stimdef.RLWMlearning.idRespBoxes[trialdata.keyResponse]).style('fill-opacity', trial.stimdef.RLWMlearning.idRespBoxesOpacity[1])
         } else {
-          d3.select(stimdef.RLWMlearning.idRespBoxes[trialdata.keyResponse]).style('stroke-width', 3)     
+          d3.select(trial.stimdef.RLWMlearning.idRespBoxes[trialdata.keyResponse]).style('stroke-width', 3)     
         }
 
         jsPsych.pluginAPI.setTimeout(() => {
           if (trial.trialMode!="test2"){
-            d3.select(stimdef.RLWMlearning.idRespBoxes[trialdata.keyResponse]).style('fill-opacity', stimdef.RLWMlearning.idRespBoxesOpacity[0])
+            d3.select(trial.stimdef.RLWMlearning.idRespBoxes[trialdata.keyResponse]).style('fill-opacity', trial.stimdef.RLWMlearning.idRespBoxesOpacity[0])
           }
           endTrial()
-        }, trial.timings.postResponseDur);
+        }, trial.expdef.timings.RLWMlearning.postResponseDur);
       }
 
       // 
       function endTrial() {
         jsPsych.pluginAPI.cancelAllKeyboardResponses(keyboardListener);
         if ((trial.trialMode=="train") | (trial.trialMode=="learn")){
-        d3.select(stimdef.RLWMlearning.idFeedback[trialdata.feedback+1]).attr('opacity','1')
+        d3.select(trial.stimdef.RLWMlearning.idFeedback[trialdata.feedback+1]).attr('opacity','1')
           jsPsych.pluginAPI.setTimeout(() => {
             trialdata.timeOffset = performance.now();
             jsPsych.finishTrial(trialdata)
-          }, trial.timings.feedbackDur);
+          }, trial.expdef.timings.RLWMlearning.feedbackDur);
         } else {
           jsPsych.pluginAPI.setTimeout(() => {
             trialdata.timeOffset = performance.now();
             jsPsych.finishTrial(trialdata)
-          }, trial.timings.feedbackDur/2);  // we half the feedback duration
+          }, trial.expdef.timings.RLWMlearning.feedbackDur/2);  // we half the feedback duration
         }
       }
-
-      /*
-      function progressBarUpdate() {
-        if (progress.barUpdate && trialdata.correct>0) {
-
-          var current_width = Number(d3.select(stimdef.RLWMlearning.idProgress).attr('width'));
-          var progressbar_fullLength = Number(d3.select(stimdef.RLWMlearning.idProgressFrame).attr('width'))
-          var point2bar = progressbar_fullLength/expdef.maxReward; 
-          var expected_width=point2bar*trial.maxReward;
-
-          var delta_width = expected_width - (current_width+point2bar*(expdef.feedbackValues[trial.correctFeedback]));
-          var correction_factor = delta_width/(progress.remtNum*progress.expectedAccuracy); 
-
-          if (progress.remtNum==0){
-            correction_factor=delta_width;
-          }
-
-          // increment
-          var next_width = current_width + point2bar*(expdef.feedbackValues[trial.correctFeedback]) + correction_factor;
-          progress.currentBarWidth=next_width
-          d3.select(stimdef.RLWMlearning.idProgress)
-            .transition().duration(100).attr('width', next_width.toString())
-            .transition().duration(trial.timings.feedbackDur-200).style('fill', stimdef.RLWMlearning.correctFeedbackColor[trial.correctFeedback]).on("end", () => {
-              d3.select(stimdef.RLWMlearning.idProgress).transition().duration(100).style('fill', "#ffffffff")
-            })
-        }
-      }
-      */
-
     }
 
+    simulate(trial, simulation_mode, simulation_options, load_callback) {
+      if (simulation_mode == "data-only") {
+        this.simulate_data_only(trial, simulation_options);
+      }
+      if (simulation_mode == "visual") {
+        this.simulate_visual(trial, simulation_options, load_callback);
+      }
+    }
+    create_simulation_data(trial, simulation_options) {
+      var default_data = {
+          keyResponse: -1,
+          correct: -1,
+          rt:0.0001,
+          feedback: -1,
+          timeOnset: -1,
+          timeFadeIn: -1,
+          timeOffset: -1,
+          trialTag: info.name,
+          trialMode: trial.trialMode,
+      }
+      default_data.correct = jsPsych.randomization.sampleBernoulli(simulation_options.RLWMaccuracy)
+      if (default_data.correct==1){
+        default_data.keyResponse=trial.correctResponse
+      } else {
+        var keyOptions=[0,1,2]
+        const index = [0,1,2].indexOf(trial.correctResponse);
+        if (index !== -1) {
+          keyOptions.splice(index, 1);
+        }
+        default_data.keyResponse=jsPsych.randomization.sampleWithoutReplacement(keyOptions, 1)[0]
+      }
+      const data = this.jsPsych.pluginAPI.mergeSimulationData(default_data, simulation_options);
+      this.jsPsych.pluginAPI.ensureSimulationDataConsistency(trial, data);
+      return data;
+    }
+    simulate_data_only(trial, simulation_options) {
+      const data = this.create_simulation_data(trial, simulation_options);
+      this.jsPsych.finishTrial(data);
+    }
   }
   jsPsychRLWMlearningPlugin.info = info;
 

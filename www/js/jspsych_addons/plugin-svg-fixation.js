@@ -21,6 +21,16 @@ var jsPsychSVGfixation = (function (jspsych) {
         array: false,
         default: 1000,
       },
+      expdef:{
+        type: jspsych.ParameterType.COMPLEX,
+        array: false,
+        pretty_name: "expdef",       
+      },
+      stimdef:{
+        type: jspsych.ParameterType.COMPLEX,
+        array: false,
+        pretty_name: "stimdef",       
+      },   
     },
 
   };
@@ -41,13 +51,16 @@ var jsPsychSVGfixation = (function (jspsych) {
 
     trial(display_element, trial) {
 
+      const jsPsych=this.jsPsych
+
+
       var trialdata = [];
 
       // 
       trialdata.timeOnset = performance.now();
 
       // if a svgview is loaded, make it transparent
-      d3.select(stimdef.idMain).attr('opacity', '0')
+      d3.select(trial.stimdef.idMain).attr('opacity', '0')
 
       // the method only works if there is a fixation objectID loaded in the DOM
       d3.select("#fixation").attr('opacity', '1')

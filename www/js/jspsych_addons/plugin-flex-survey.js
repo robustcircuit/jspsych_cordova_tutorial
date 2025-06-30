@@ -39,6 +39,16 @@ var jsPsychFlexSurvey = (function (jspsych) {
         array: false,
         pretty_name: "question",
       },
+      expdef:{
+        type: jspsych.ParameterType.COMPLEX,
+        array: false,
+        pretty_name: "expdef",       
+      },
+      stimdef:{
+        type: jspsych.ParameterType.COMPLEX,
+        array: false,
+        pretty_name: "stimdef",       
+      },   
     }
   };
 
@@ -57,6 +67,8 @@ var jsPsychFlexSurvey = (function (jspsych) {
     };
 
     trial(display_element, trial) {
+
+      const jsPsych=this.jsPsych
 
       // initialize variables and modules
       var keyboardListener
@@ -129,8 +141,8 @@ var jsPsychFlexSurvey = (function (jspsych) {
             .attr('id', 'options' + [i + 1].toString())
             .html(trial.item.options[i])
             .on('mousedown', function () {
-              if (d3.select("#" + this.id).style("background-color") == expdef.buttonSelectedBackground) {
-                d3.select("#" + this.id).style("background-color", expdef.buttonChosenBackground)
+              if (d3.select("#" + this.id).style("background-color") == trial.expdef.buttonSelectedBackground) {
+                d3.select("#" + this.id).style("background-color", trial.expdef.buttonChosenBackground)
                 jsPsych.pluginAPI.setTimeout(() => {
                   trialdata.choice = parseInt(this.id[this.id.length-1])
                   trialdata.rt = performance.now()-trialdata.displayTime;
@@ -143,8 +155,8 @@ var jsPsychFlexSurvey = (function (jspsych) {
                   jsPsych.finishTrial(trialdata)
                 }, trial.postchoiceDur)
               } else {
-                d3.selectAll("[id^=options]").style("background-color", expdef.buttonBaseBackground)
-                d3.select("#" + this.id).style("background-color", expdef.buttonSelectedBackground)
+                d3.selectAll("[id^=options]").style("background-color", trial.expdef.buttonBaseBackground)
+                d3.select("#" + this.id).style("background-color", trial.expdef.buttonSelectedBackground)
               }
             })
         }

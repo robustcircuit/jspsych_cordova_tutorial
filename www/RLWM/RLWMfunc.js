@@ -1,114 +1,101 @@
-async function RLWM() {
 
-  const dependencies=[
-    "js/jspsych/jspsych.js",
-    "js/jspsych/plugin-preload.js",
-    "js/jspsych/plugin-fullscreen.js",
-    "js/jspsych_addons/plugin-external-html-improved.js",
-    "js/jspsych/plugin-browser-check.js",
-    "js/jspsych/plugin-call-function.js",
-    "js/jspsych/plugin-html-keyboard-response.js",
-    "js/jspsych_addons/plugin-svg-fixation.js",
-    "js/jspsych_addons/plugin-flex-instruction.js",
-    "js/jspsych_addons/plugin-flex-question.js",
-    "RLWM/js/plugin-RLWMlearning.js"
-  ]
+// Get location with respect to main process
+/*
+const currentScript = document.currentScript;
+const scriptUrl = new URL(currentScript.src);
+const scriptPath = scriptUrl.pathname;
+console.log('Full script path:', scriptPath);
+console.log('Base URL:', baseUrl);
+const parts = scriptPath.split('/');
+const selfFolder = parts[parts.length - 2];
+*/
+function runExperiment(){
+  var selfFolder='RLWM'
 
-  // Load global JS modules
-  await Promise.all(dependencies.map(src => loadScript(src)));
-
-  /*
-  // Get location with respect to main process
-  const currentScript = document.currentScript;
-  const scriptUrl = new URL(currentScript.src);
-  const scriptPath = scriptUrl.pathname;
-  console.log('Full script path:', scriptPath);
-  console.log('Base URL:', baseUrl);
-  const parts = scriptPath.split('/');
-  const selfFolder = parts[parts.length - 2];
-  */
-
-  const selfFolder='RLWM'
-  
   if (typeof socket === 'undefined') {
     let socket
   }
 
-  const jspsychParentDiv='jspsych-body'
-
-  var tags2save=["RLWMtrial","browserinfo"]
-  var jsPsych = initJsPsych({
-    display_element: jspsychParentDiv,
-    on_trial_finish: function(data) {
-      // send trial to db
-      if (tags2save.includes(data.trialTag)){
-        addItem('trials', data);
-      }
-      console.log(data)
-    },
-    on_start: function(){
-      console.log("here")
-    }
-  });
-
   ///////
   const consoleLog=true
 
-  /////// generate random ids
-  function generateUUIDv4() {
-    return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
-      (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
-    );
-  }
-  var random_subjectId=generateUUIDv4()
-  var random_sessionId=generateUUIDv4()
-  var random_studyId=generateUUIDv4()
+  try {
+    document.getElementById('auth-container').classList.add('d-none');
+    document.getElementById('nav-bar').classList.add('d-none');
+    document.getElementById('jspsych-body').classList.remove('d-none');
+  } catch {console.error}
 
   ////////////////////////////////////////////////////////////////////
   //// Experiment settings
   ////////////////////////////////////////////////////////////////////
   var expdef={
-    // identifiers (may be replaced by URLparameters)
-    sessionId: random_sessionId,
-    studyId: random_studyId,
+    // identifiers (may be replaced later)
+    sessionId: uuid16Base64(),
+    studyId: uuid16Base64(),
+    subjectId: uuid16Base64(),
     experimentName: 'RLWM',
     env: {CONTEXT: 'web'},
     sent: 0,
-    //
-    nrepeats:3,
+    // general settings
+    nrepeats:10,
     toleranceAvgDistanceRepetition:0.25,
+    feedbackValues: [1,2],
     keyMode: 'keyboard',
     instructionMouse: true,
     keyCodes: ['ArrowLeft', 'ArrowDown', 'ArrowRight'],
     keyBack: 'ArrowLeft',
     keyNext: 'ArrowRight',
-    feedbackValues: [1.0,3.0],
     screen: {
-      width: 1080,
-      height: 1920
+      width: 1920,
+      height: 1080
     },
     timings: {
       preblock: {
         timerDur: 4000
       },
       fixation: {
-        fixDur: 500,
+        fixDur: [500,1000],
       },
-      learning: {
+      RLWMlearning: {
         postResponseDur: 200,
-        feedbackDur: 800,
+        feedbackDur: 100,
         fadeInDur: 100, // fade in of learning trials
-        responseTimeout: 1500,
+        responseTimeout: 2500,
+      },
+      progress: {
+        updateDur: 800
       }
     },
     language: "english",
     mobileSession: false,
+    jspsychParentDiv:'jspsych-body',
+    tags2save: ["RLWMlearning","browserinfo"],
+    runMode: 'normal',
+    decimateDurations: 1.0,
   }
 
-  var progress={
+
+  ////////////////////////////////////////////////////////////////////
+  //// Experiment settings
+  ////////////////////////////////////////////////////////////////////
+
+  var jsPsych = initJsPsych({
+    display_element: expdef.jspsychParentDiv,
+    on_trial_finish: function(data) {
+      // send trial to db
+      if (expdef.tags2save.includes(data.trialTag)){
+        addItem('trials', data);
+      }
+      console.log(data)
+    },
+  });
+
+
+
+  const progress_init={
     // identifiers (may be replaced by URLparameters)
-    sessionId: random_sessionId,
-    studyId: random_studyId,
+    sessionId: expdef.sessionId,
+    studyId: expdef.studyId,
     experimentName: 'RLWM',
     sent: 0,
     // 
@@ -127,9 +114,11 @@ async function RLWM() {
     currentSVG: undefined
   }
 
+  var progress = structuredClone(progress_init);
+
   // check platform
   if (typeof cordova!=='undefined' && cordova?.platformId=='android'){
-    const accelDisplay = d3.select('#'+jspsychParentDiv)
+    const accelDisplay = d3.select('#'+expdef.jspsychParentDiv)
     .append("div")
     .attr("id", "accel-display")
     .style("position", "fixed")
@@ -154,41 +143,39 @@ async function RLWM() {
     },500)
   }
 
-
   ////////////////////////////////////////////////////////////////////
   //// Stimulus definition
   ////////////////////////////////////////////////////////////////////
 
   var stimdef = {
     // identifiers (may be replaced by URLparameters)
-    sessionId: random_sessionId,
-    studyId: random_studyId,
+    sessionId: expdef.sessionId,
+    studyId: expdef.studyId,
     experimentName: 'RLWM',
     sent: 0,
-    // general
+    // Paths
     imagesFolder:`${selfFolder}/imgsets`,
     pathLearningTrial: `${selfFolder}/assets/learningtrial_${expdef.screen.width}x${expdef.screen.height}.svg`,
     pathProgressbar: `${selfFolder}/assets/progressbar_overall.svg`,
     pathInstructionImage: `${selfFolder}/assets/instruction_example.svg`,
-    // SVG items
+    // SVG General
     idMain: '#svgview',
-    idRespBoxes: ['#leftresp', '#centerresp', '#rightresp'],
-    idRespBoxesText: ['#lefttext', '#centertext', '#righttext'],
-    idFeedback: ['#noresponse','#incorrect', '#correctNormal', '#correctExtra'],
-    idFeedbackText: ['#noresponseText','#incorrectText', '#correctNormalText', '#correctExtraText'],
-    idFeedbackRect: ['#noresponseRect','#incorrectRect', '#correctNormalRect', '#correctExtraRect'],
-    textFeedback: ['No valid response', 'Incorrect', 'Correct', 'Correct'],
-    idTargetLearning:'#targetimage',
-    // Dynamic SVG properties
-    idRespBoxesColor: ['#81aac2ff', '#c1c34aff', '#0fb76fff'],
-    correctFeedbackColor : ['#c1c34aff', '#0fb76fff'],
-    idRespBoxesOpacity: ['0.2', '0.6'],
-    // Fixation
     idFixation: "#fixation",
-    // Progress bar
+    // SVG Progress bar
     idProgress: '#progressbar',
     idProgressFrame: '#progressframe',
-    progressbar_stepDownUp: [0, 0],
+    // RLWMlearning plugin
+    RLWMlearning: {
+      idRespBoxes: ['#leftresp', '#centerresp', '#rightresp'],
+      idRespBoxesText: ['#lefttext', '#centertext', '#righttext'],
+      idFeedback: ['#noresponse','#incorrect', '#correctNormal', '#correctExtra'],
+      idFeedbackText: ['#noresponseText','#incorrectText', '#correctNormalText', '#correctExtraText'],
+      idFeedbackRect: ['#noresponseRect','#incorrectRect', '#correctNormalRect', '#correctExtraRect'],
+      idTargetLearning:'#targetimage',
+      // Dynamic SVG properties
+      idRespBoxesColor: ['#6a6a6a','#c64040', '#badc66', '#66dc6a'],
+      idRespBoxesOpacity: ['0.2', '0.6'],
+    },
   }
 
   // set and randomize categories included in the experiment
@@ -288,18 +275,22 @@ async function RLWM() {
           tblockNum: tblockNum,
           tNum: expdef.totaltrialNum+tblockNum,
           correctFeedback: imgidx % 2,
+          setSize: block.images.length,
+          imgIdx:imgidx
         }));
         expdef.totaltrialNum+=tryTrials.length
         if (block.phase=='learn'){
           progress.remtNum+=tryTrials.length
         }
         block.trials=tryTrials
-        if (block.phase=="learn"){
-          block.trials.forEach(trial=>{
+        block.trials.forEach((trial,tidx)=>{
+          if (block.phase=="learn"){
             expdef.maxReward+=expdef.feedbackValues[trial.correctFeedback],
-            trial.maxReward=expdef.maxReward
-          })
-        }
+            stimdef.blockTypes[blockidx].trials[tidx].maxReward=expdef.maxReward
+          } else {
+            stimdef.blockTypes[blockidx].trials[tidx].maxReward=0       
+          }
+        })
         if (blockidx==stimdef.blockTypes.length-1){
           progress.fetched.images=true
         }
@@ -324,8 +315,11 @@ async function RLWM() {
     progress.subjectId = urlParams.get('SUBJECT_ID');
   } else if (urlParams.has('PROFILIC_PID')) {
     expdef.subjectId = urlParams.get('PROFILIC_PID');
-    stimdef.subjectId = urlParams.get('PROFILIC_PID');
-    progress.subjectId = urlParams.get('PROFILIC_PID');
+    expdef.prolificId = expdef.subjectId
+    stimdef.subjectId = expdef.subjectId
+    stimdef.prolificId = expdef.subjectId
+    progress.subjectId = expdef.subjectId
+    progress.prolificId = expdef.subjectId
   }
   //
   if (urlParams.has('SESSION_ID')) {
@@ -339,97 +333,9 @@ async function RLWM() {
     stimdef.studyId = urlParams.get('STUDY_ID');
     progress.studyId = urlParams.get('STUDY_ID');
   }
-
-
-
-  ////////////////////////////////////////////////////////////////////
-  //// Trial definitions
-  ////////////////////////////////////////////////////////////////////
-
-  function createD3Timer(duration, onComplete, options = {}) {
-    const {
-      selector = "body",     // parent to insert timer into
-      id = "d3-timer",       // ID to assign to timer container
-      position = "top-right", // one of: top-right, top-left, bottom-right, bottom-left
-      refreshInterval=100,
-      yMargin="50px",
-      xMargin="50px",
-      fillColor="#8573af"
-    } = options;
-
-    const size = 150;
-    const radius = size / 2 - 10;
-
-    // Remove any previous timer with same ID
-    d3.select(`#${id}`).remove();
-
-    // Create container div
-    const container = d3.select(selector)
-      .append("div")
-      .attr("id", id)
-      .style("position", "absolute")
-      .style("width", `${size}px`)
-      .style("height", `${size}px`)
-      .style("z-index", 1000);
-
-    // Positioning
-    switch (position) {
-      case "top-left":
-        container.style("top", yMargin).style("left", xMargin);
-        break;
-      case "top-right":
-        container.style("top", yMargin).style("right", xMargin);
-        break;
-      case "bottom-left":
-        container.style("bottom", yMargin).style("left", xMargin);
-        break;
-      case "bottom-right":
-        container.style("bottom", yMargin).style("right", xMargin);
-        break;
-      default:
-        container.style("top", yMargin).style("right", xMargin);
-    }
-
-    // Add SVG
-    const svg = container
-      .append("svg")
-      .attr("width", size)
-      .attr("height", size)
-      .append("g")
-      .attr("transform", `translate(${size / 2}, ${size / 2})`);
-
-    const background = svg.append("path").attr("fill", "#eee");
-    const foreground = svg.append("path").attr("fill", fillColor);
-    const text = svg.append("text")
-      .attr("text-anchor", "middle")
-      .attr("dy", "0.35em")
-      .style("font-size", "24px")
-      .text(duration);
-
-    const arc = d3.arc()
-      .innerRadius(radius - 10)
-      .outerRadius(radius)
-      .startAngle(0);
-
-    background.datum({ endAngle: 2 * Math.PI }).attr("d", arc);
-    foreground.datum({ endAngle: 2 * Math.PI }).attr("d", arc);
-
-    let timeLeft = duration;
-    const total = duration;
-
-    const interval = d3.interval(() => {
-      timeLeft-=(refreshInterval/1000);
-      const progress = timeLeft / total;
-      foreground.datum({ endAngle: 2 * Math.PI * progress }).attr("d", arc);
-      text.text(parseInt(timeLeft));
-
-      if (timeLeft <= 0) {
-        interval.stop();
-        foreground.datum({ endAngle: 0 }).attr("d", arc);
-        text.text("0");
-        if (typeof onComplete === "function") onComplete();
-      }
-    }, refreshInterval);
+  //
+  if (urlParams.has('RUN_MODE')) {
+    expdef.runMode = urlParams.get('RUN_MODE');
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -442,6 +348,29 @@ async function RLWM() {
       images: stimdef.imagesPreloadPaths,
   }
 
+  var trial_consent = {
+    type: jsPsychExternalHtml,
+    url: function () {
+      return `${selfFolder}/html/simple_consent_${expdef.language}.html`
+    },
+    cont_btn: 'start',
+    check_fn: function () {
+      if (document.getElementById('consent_checkbox').checked) {
+        return true;
+      } else {
+        alert(lang.alert_consent)
+      }
+    },
+    on_finish: function () {
+      jsPsych
+        .data
+        .get()
+        .addToLast({
+          trialTag: 'consent'
+      })
+    }
+  };
+
   // load SVG
   var loadSVG_func = {
     type: jsPsychCallFunction,
@@ -453,7 +382,7 @@ async function RLWM() {
       }
       Promise
         .all([
-          d3.select('#'+jspsychParentDiv)
+          d3.select('#'+expdef.jspsychParentDiv)
           .append('div')
           .attr('id', 'jspsych-svg')
           .style('position', 'absolute')
@@ -474,6 +403,18 @@ async function RLWM() {
             mainsvg.node().append(data.documentElement)
             d3.select(stimdef.idMain).attr('opacity', '0')
             d3.select(stimdef.idFixation).attr('opacity', '0')
+            stimdef.RLWMlearning.idFeedbackRect.forEach((rectId,rectIdx)=>{
+              const rect = d3.select(rectId);
+              const rectX = +rect.attr("x");
+              const rectWidth = +rect.attr("width");
+              const centerX = rectX + rectWidth / 2;
+              rect.style('fill', stimdef.RLWMlearning.idRespBoxesColor[rectIdx])
+              d3.select(stimdef.RLWMlearning.idFeedbackText[rectIdx])
+                .text(lang.textFeedback[rectIdx])
+                .attr("x", centerX)
+                .attr("text-anchor", "middle"); // Ensures text is centered around its x
+            })
+
             if (!progress.barUpdate){
               d3.select(stimdef.idProgress).attr('opacity', '0')
               d3.select(stimdef.idProgressFrame).attr('opacity', '0')
@@ -489,6 +430,7 @@ async function RLWM() {
         })
     },
   }
+
   // unloadSVG
   var unloadSVG = {
       type: jsPsychCallFunction,
@@ -499,6 +441,53 @@ async function RLWM() {
       },
       on_timeline_finish: function () {},
   };
+
+  var updateProgress = {
+    type: jsPsychCallFunction,
+    async: true,
+    func: function (done) {
+      async function progressBarUpdate(trialdata) {
+        var current_width = Number(d3.select(stimdef.idProgress).attr('width'));
+        var progressbar_fullLength = Number(d3.select(stimdef.idProgressFrame).attr('width'))
+
+        var point2bar = progressbar_fullLength / expdef.maxReward;
+        var expected_width = point2bar * stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].maxReward*progress.expectedAccuracy;
+
+        var delta_width = expected_width - current_width;
+
+        var delta_max_width = point2bar*stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].maxReward - current_width;
+
+        var corrected_delta = progress.doneFraction * delta_max_width + (1-progress.doneFraction)*delta_width
+
+        if (progress.remtNum==0){
+          corrected_delta=delta_width;
+        }
+        var next_width = current_width + corrected_delta;
+        progress.currentBarWidth=next_width
+        //console.log(current_width,progressbar_fullLength,point2bar,expected_width,delta_width,correction_factor,next_width)
+        await new Promise(resolve => {
+          d3.select(stimdef.idProgress)
+            .transition().duration(100*expdef.decimateDurations).attr('width', next_width.toString())
+            .transition().duration(expdef.timings.progress.updateDur - 200*expdef.decimateDurations)
+            .style('fill', stimdef.RLWMlearning.idRespBoxesColor[trialdata.feedback + 1])
+            .on("end", () => {
+              d3.select(stimdef.idProgress)
+                .transition().duration(100)
+                .style('fill', "#ffffffff")
+                .on("end", resolve); // Resolve after the final fill transition
+            });
+        });
+      }
+      var trialdata = jsPsych.data.getLastTrialData().trials[0]
+      if (progress.barUpdate && trialdata.correct>0) {
+        progressBarUpdate(trialdata).then(done)
+      } else {
+        jsPsych.pluginAPI.setTimeout(()=>{
+          done()
+        }, expdef.timings.progress.updateDur)
+      }
+    },
+  }
 
   // enter fullscreen
   var enter_fullscreen = {
@@ -569,21 +558,37 @@ async function RLWM() {
   // fixation cross
   var fixation_trial = {
     type: jsPsychSVGfixation,
-    fix_duration: expdef.timings.fixation.fixDur
+    expdef: function(){
+      return expdef
+    },
+    stimdef: function(){
+      return stimdef
+  },
+    fix_duration: function(){
+      if (typeof expdef.timings.fixation.fixDur === 'number') {
+        return expdef.timings.fixation.fixDur
+      } else if (Array.isArray(expdef.timings.fixation.fixDur) && expdef.timings.fixation.fixDur.length === 2){
+        return jsPsych.randomization.randomInt(expdef.timings.fixation.fixDur[0],expdef.timings.fixation.fixDur[1])
+      }
+    }
   };
 
   // learning trial
   var learning_trial = {
     type: jsPsychRLWMlearning,
+    expdef: function(){
+      return expdef
+    },
+    stimdef: function(){
+      return stimdef
+    },
+    name: "learningtrial",
     correctResponse: function () {
       console.log(stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].correctAction)
       return stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].correctAction
     },
     correctFeedback: function () {
       return stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].correctFeedback
-    },
-    maxReward: function () {
-      return stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].maxReward
     },
     trialMode: function () {
       return stimdef.blockTypes[progress.bNum].phase
@@ -593,7 +598,6 @@ async function RLWM() {
     },
     on_finish: function (trialdata) {
       //
-      console.log(progress)
       progress.tblockNum += 1;
       progress.tNum += 1;
       if (trialdata.correct > 0) {
@@ -609,8 +613,9 @@ async function RLWM() {
     }
   }
   var learning_block = {
+    name: "learningblock",
     timeline: [
-      fixation_trial,learning_trial
+      fixation_trial,learning_trial, updateProgress,
     ],
     on_timeline_start: function(){
       if (expdef.keyMode!="mouse"){
@@ -632,6 +637,12 @@ async function RLWM() {
 
   var instruction_show = {
     type: jsPsychFlexInstruction,
+    expdef: function(){
+      return expdef
+    },
+    stimdef: function(){
+      return stimdef
+    },
     content: function () {
       return instruction_list[instruction_idx];
     },
@@ -639,12 +650,25 @@ async function RLWM() {
       return "instruction-show";
     },
     on_finish: function(){
-      instruction_idx+=1
+      if (instruction_idx<instruction_list.length){
+        instruction_idx+=1
+      }
+    },
+    on_start: function(){
+      if (instruction_list[instruction_idx].min_duration){
+        createD3Timer(instruction_list[instruction_idx].min_duration/1000, ()=>{d3.select("#d3-timer").remove()},{selector:"#"+expdef.jspsychParentDiv})
+      }
     }
   };
 
   var instruction_check = {
     type: jsPsychFlexQuestion,
+    expdef: function(){
+      return expdef
+    },
+    stimdef: function(){
+      return stimdef
+    },
     content: function () {
       return lang.welcome_check;
     },
@@ -655,16 +679,16 @@ async function RLWM() {
       if (trialdata.correct==1){
         instruction_checked=true
       }
-    }
+    },
   };
 
   var instruction_list
   var instruction_idx=0;
   var instruction_checked=false;
   var instructions_timeline={
-    timeline:[instruction_show,instruction_show,instruction_show,instruction_check],
+    timeline:[instruction_show,instruction_show,instruction_check],
     on_timeline_start: function(){
-      instruction_list=[lang.welcome1_show, lang.welcome2_show,lang.training_show]
+      instruction_list=[lang.welcome1_show, lang.welcome2_show]
     },
     loop_function: function(){
       if (instruction_checked){
@@ -675,22 +699,67 @@ async function RLWM() {
       }
     }
   }
+  var training_show = {
+    type: jsPsychFlexInstruction,
+    expdef: function(){
+      return expdef
+    },
+    stimdef: function(){
+      return stimdef
+    },
+    content: function () {
+      return lang.training_show;
+    },
+    trialTag: function () {
+      return "training-show";
+    },
+    on_start: function(){
+      if (lang.training_show.min_duration){
+          createD3Timer(lang.training_show.min_duration/1000, ()=>{d3.select("#d3-timer").remove()},{selector:"#"+expdef.jspsychParentDiv})
+      }
+    }
+  };
 
   var premain_show = {
     type: jsPsychFlexInstruction,
+    expdef: function(){
+      return expdef
+    },
+    stimdef: function(){
+      return stimdef
+    },
     content: function () {
       return lang.main_show;
     },
     trialTag: function () {
       return "premain-show";
     },
+    on_finish:  function(){
+      progress.barUpdate=true;
+    },
+    on_start: function(){
+      if (lang.training_show.min_duration){
+          createD3Timer(lang.main_show.min_duration/1000, ()=>{d3.select("#d3-timer").remove()},{selector:"#"+expdef.jspsychParentDiv})
+      }
+    }
   };
 
   var final_show = {
     type: jsPsychFlexInstruction,
+    expdef: function(){
+      return expdef
+    },
+    stimdef: function(){
+      return stimdef
+    },
     on_start: function(){
+      var interaction_data = jsPsych.data.getInteractionData();
+      interaction_data.trialTag = 'interactionData';
+      jsPsych
+        .data
+        .get()
+        .push(interaction_data);
       sendDataFromIndexedDB('trials',expdef).then(()=>{
-        console.log("end")
         d3.select("#main-customhtml").remove()
         jsPsych.finishTrial({})
       })
@@ -705,6 +774,12 @@ async function RLWM() {
 
   var end_show = {
     type: jsPsychFlexInstruction,
+    expdef: function(){
+      return expdef
+    },
+    stimdef: function(){
+      return stimdef
+    },
     content: function () {
       return lang.end_show;
     },
@@ -713,11 +788,28 @@ async function RLWM() {
     },
     on_finish: function(){
       socket.disconnect()
+      if ('prolific_id' in expdef){
+        fetch(`${baseUrl}/api/getEnv`)
+        .then(res=>res.json())
+        .then(data => {
+          window.location.href = `https://app.prolific.com/submissions/complete?cc=${data.prolificCode}`;
+        })
+      } else {
+        if (expdef.RUN_MODE!='normal'){
+          alert('DONE')
+        }
+      }
     }
   };
 
   var preblock_show = {
     type: jsPsychFlexInstruction,
+    expdef: function(){
+      return expdef
+    },
+    stimdef: function(){
+      return stimdef
+    },
     content: function () {
       return lang.preblock_show;
     },
@@ -728,14 +820,13 @@ async function RLWM() {
     return [`<div class="jspsych-image-container">${stimdef.blockTypes[progress.bNum].images.map(src => `<img src="${src}">`).join('')}</div>`]
     },
     on_start: function(){
-      createD3Timer(expdef.timings.preblock.timerDur/1000, ()=>{d3.select("#d3-timer").remove()},{selector:"#"+jspsychParentDiv})
+      createD3Timer(expdef.timings.preblock.timerDur*expdef.decimateDurations/1000, ()=>{d3.select("#d3-timer").remove()},{selector:"#"+expdef.jspsychParentDiv})
     }
   };
 
   var main_training = {
     timeline: [preblock_show, loadSVG_func, learning_block, unloadSVG],
     on_timeline_finish: function () {
-      progress.barUpdate=true;
       document.body.style.cursor = 'pointer';
     },
   }
@@ -758,18 +849,39 @@ async function RLWM() {
   ////////////////////////////////////////////////////////////////////
   //// Assemble timeline(s)
   ////////////////////////////////////////////////////////////////////
-  //const main_timeline=[browsercheck_trial, trial_preload, enter_fullscreen, instructions_timeline, main_training, premain_show,main_learning, exit_fullscreen]
-  const main_timeline=[browsercheck_trial, trial_preload, final_show,end_show]
+  let main_timeline
+  let simulation_options
+  if (expdef.runMode=="normal"){
+    main_timeline=[browsercheck_trial, trial_consent, trial_preload, enter_fullscreen, instructions_timeline, training_show, main_training, premain_show,main_learning, exit_fullscreen,final_show,end_show]
+  } else if (expdef.runMode=="endtest"){
+    main_timeline=[browsercheck_trial, trial_consent, trial_preload, enter_fullscreen, training_show, exit_fullscreen,final_show,end_show]
+  } else if (expdef.runMode=="quicktest"){
+    expdef.decimateDurations=0.1
+    expdef.timings.RLWMlearning.responseTimeout*=expdef.decimateDurations
+    expdef.timings.fixation.fixDur*=expdef.decimateDurations
+    stimdef.blockTypes=stimdef.blockTypes.slice(0, 3);
+    main_timeline=[browsercheck_trial, trial_preload, enter_fullscreen, instructions_timeline, training_show, main_training, premain_show,main_learning, exit_fullscreen,final_show,end_show]
+  } else if (expdef.runMode=="simulate"){
+    learning_block.timeline=learning_block.timeline.filter(
+      item=> item.name=="learningtrial"
+    )
+    main_learning.timeline=main_learning.timeline.filter(
+      item => item.name=="learningblock"
+    );
+    main_training.timeline=main_training.timeline.filter(
+      item => item.name=="learningblock"
+    );
+    main_timeline=[trial_preload,main_training, main_learning]
+    var nsimuls=1
+    if (urlParams.has('N_SIMULS')) {
+      nsimuls = parseInt(urlParams.get('N_SIMULS'));
+    }
+    simulation_options = {
+        RLWMaccuracy: 0.75,
+        nsimuls: nsimuls
+    }
 
-  var script = document.createElement('script');
-  script.onload = function () {
-    progress.fetched.language=true
-  };
-  script.src = `${selfFolder}/languages/lang.` + expdef.language + '.js';
-  document
-    .head
-    .appendChild(script);
-
+  }
   function waitFor(conditionFn, checkInterval = 100) {
     return new Promise((resolve) => {
       const interval = setInterval(() => {
@@ -781,59 +893,79 @@ async function RLWM() {
     });
   }
 
-  async function main() {
+  async function main(mode) {
     await waitFor(() => {
       var ready=true
       for (const key in progress.fetched){
         ready=ready & progress.fetched[key]
-        console.log(ready)
       }
       return ready
     });
-    try {
-      random_subjectId = await getCurrentUser()
-    } catch {
-      console.log("No logged user")
-    }
-    expdef.subjectId=random_subjectId
-    stimdef.subjectId=random_subjectId
-    progress.subjectId=random_subjectId
-    console.log("current user",random_subjectId)
-    // expdef query
-    var query_results=[]
-    try {
-      query_results = await getByCompound('expdef', expdef);
-      console.log('Fetched records:', query_results);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-    if (query_results.length==0){
-      addItem('stimdef', stimdef);
-      addItem('progress', progress);
-      addExpdef(expdef);
-    }
-    jsPsych.data.addProperties({
-      subjectId: expdef.subjectId,
-      sessionId: expdef.sessionId,
-      studyId: expdef.studyId,
-      experimentName: 'RLWM',
-      sent: 0,
-    });
-    if (expdef.env.CONTEXT=='local'){
-      if (!socket){
-        socket = io(baseUrl);
+    window.jsPsychInstance = jsPsych
+    window.experimentSettings = {expdef,stimdef,progress}
+    if (mode=='simulate'){
+      for (let sim = 0; sim < simulation_options.nsimuls; sim++) {
+        await jsPsych.simulate(main_timeline, "data-only", simulation_options).then(()=>{
+        })
+        var simulationBehavior=jsPsych.data.get().filterColumns(['keyResponse', 'correct'])
+        var simulationData=[]
+        stimdef.blockTypes.forEach((block)=>{
+          block.trials.forEach((trial,trialidx)=>{
+            const { image, ...trialInfo } = trial;
+            let trialObject = { ...trialInfo, ...simulationBehavior[trialidx] };
+            trialObject.simNum=sim
+            simulationData.push(trialObject)
+          })
+        })
+        progress = structuredClone(progress_init);
+        socket.emit("simulationData", simulationData)
       }
-      socket.on("syncRequest", (data, ack) => {
-        // Respond with some data
-        ack({experimentMS: performance.now() });
+    } else {
+      try {
+        expdef.subjectId = await getCurrentUser()
+      } catch {
+        console.log("No logged user")
+      }
+      stimdef.subjectId=expdef.subjectId
+      progress.subjectId=expdef.subjectId
+      // expdef query
+      var query_results=[]
+      try {
+        query_results = await getByCompound('expdef', expdef);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+      if (query_results.length==0){
+        addItem('stimdef', stimdef);
+        addItem('progress', progress);
+        addExpdef(expdef);
+      }
+      jsPsych.data.addProperties({
+        subjectId: expdef.subjectId,
+        sessionId: expdef.sessionId,
+        studyId: expdef.studyId,
+        experimentName: 'RLWM',
+        sent: 0,
       });
-      socket.emit('expdef', expdef);
-      socket.emit('stimdef', stimdef);
-    }
+      if (expdef.env.CONTEXT=='local'){
+        if (!socket){
+          socket = io(baseUrl);
+        }
+        socket.on("syncRequest", (data, ack) => {
+          // Respond with some data
+          ack({experimentMS: performance.now() });
+        });
+        socket.emit('expdef', expdef);
+        socket.emit('stimdef', stimdef);
+      }
 
-    console.log("Done fetching!");
-    jsPsych.run(main_timeline)
+      console.log("Done fetching!");
+      jsPsych.run(main_timeline)
+    }
   }
-  main()
+
+  lang=getLanguage(expdef, stimdef)
+  progress.fetched.language=true
+  main(expdef.runMode)
 
 }
