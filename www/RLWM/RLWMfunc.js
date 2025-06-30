@@ -19,6 +19,12 @@ function runExperiment(){
   ///////
   const consoleLog=true
 
+  var runMode="normal"
+  //
+  if (urlParams.has('RUN_MODE')) {
+    runMode = urlParams.get('RUN_MODE');
+  }
+
   try {
     document.getElementById('auth-container').classList.add('d-none');
     document.getElementById('nav-bar').classList.add('d-none');
@@ -37,7 +43,7 @@ function runExperiment(){
     env: {CONTEXT: 'web'},
     sent: 0,
     // general settings
-    nrepeats:10,
+    nrepeats:(runMode=="quicktest") ? 10 : 4,
     toleranceAvgDistanceRepetition:0.25,
     feedbackValues: [1,2],
     keyMode: 'keyboard',
@@ -70,7 +76,7 @@ function runExperiment(){
     mobileSession: false,
     jspsychParentDiv:'jspsych-body',
     tags2save: ["RLWMlearning","browserinfo"],
-    runMode: 'normal',
+    runMode: runMode,
     decimateDurations: 1.0,
   }
 
@@ -178,7 +184,13 @@ function runExperiment(){
   }
 
   // set and randomize categories included in the experiment
-  var categories = ["bird","sports", "kitchen","lighting","watercraft","container", "construction","dessert", "fruit", "instrument", "vegetable", "vehicle", "electronic"]
+  let categories
+  if (expdef.runMode=='quicktest'){
+      categories = ["bird","sports"]
+  } else {
+      categories = ["bird","sports", "kitchen","lighting","watercraft","container", "construction","dessert", "fruit", "instrument", "vegetable", "vehicle", "electronic"]
+  }
+
   stimdef.categories = jsPsych.randomization.repeat(categories, 1);
 
   // set blockTypes
@@ -197,6 +209,11 @@ function runExperiment(){
     {"setSize": 6,"correctAction": [0,0,1,1,2,2],"phase": "learn"},    
     {"setSize": 6,"correctAction": [0,0,1,1,2,2],"phase": "learn"},
   ]
+
+  blockTypes=blockTypes.slice(0,categories.length)
+
+  console.log(blockTypes)
+
   stimdef.blockTypes = jsPsych.randomization.repeat(blockTypes, 1);
 
   // ensure that blockTypes and categories have the same length
@@ -330,10 +347,6 @@ function runExperiment(){
     expdef.studyId = urlParams.get('STUDY_ID');
     stimdef.studyId = urlParams.get('STUDY_ID');
     progress.studyId = urlParams.get('STUDY_ID');
-  }
-  //
-  if (urlParams.has('RUN_MODE')) {
-    expdef.runMode = urlParams.get('RUN_MODE');
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -856,7 +869,8 @@ function runExperiment(){
     expdef.timings.RLWMlearning.responseTimeout*=expdef.decimateDurations
     expdef.timings.fixation.fixDur*=expdef.decimateDurations
     stimdef.blockTypes=stimdef.blockTypes.slice(0, 3);
-    main_timeline=[browsercheck_trial, trial_preload, enter_fullscreen, instructions_timeline, training_show, main_training, premain_show,main_learning, exit_fullscreen,final_show,end_show]
+    expdef.totaltrialNum=0
+    main_timeline=[browsercheck_trial, trial_preload, training_show, main_training, premain_show,main_learning, exit_fullscreen,final_show,end_show]
   } else if (expdef.runMode=="simulate"){
     learning_block.timeline=learning_block.timeline.filter(
       item=> item.name=="learningtrial"
