@@ -10,6 +10,9 @@ const parts = scriptPath.split('/');
 const selfFolder = parts[parts.length - 2];
 */
 function runExperiment(){
+
+  const baseUrl = `${window.location.protocol}//${window.location.host}`;
+
   var selfFolder='RLWM'
 
   if (typeof socket === 'undefined') {
@@ -43,7 +46,7 @@ function runExperiment(){
     env: {CONTEXT: 'web'},
     sent: 0,
     // general settings
-    nrepeats:(runMode=="quicktest") ? 10 : 4,
+    nrepeats:(runMode=="quicktest") ? 10 : 3,
     toleranceAvgDistanceRepetition:0.25,
     feedbackValues: [1,2],
     keyMode: 'keyboard',
@@ -78,6 +81,8 @@ function runExperiment(){
     tags2save: ["RLWMlearning","browserinfo"],
     runMode: runMode,
     decimateDurations: 1.0,
+    sendInterval: 5000,
+    type: 'expdef'
   }
 
 
@@ -92,7 +97,6 @@ function runExperiment(){
       if (expdef.tags2save.includes(data.trialTag)){
         addItem('trials', data);
       }
-      console.log(data)
     },
   });
 
@@ -109,14 +113,17 @@ function runExperiment(){
     doneFraction: 0,
     guessedAccuracy: 0.75,
     expectedAccuracy: 0.75,
+    accumulatedAccuracy: 0.75,
     cumreward: 0,
     tNum:0,
+    tTestNum: 0,
     tblockNum:0,
     bNum:0,
     barUpdate:false,
     currentBarWidth:0.01,
     fetched: {images: false, language: false},
-    currentSVG: undefined
+    currentSVG: undefined,
+    type: 'progress'
   }
 
   var progress = structuredClone(progress_init);
@@ -181,12 +188,13 @@ function runExperiment(){
       idRespBoxesColor: ['#6a6a6a','#c64040', '#badc66', '#66dc6a'],
       idRespBoxesOpacity: ['0.2', '0.6'],
     },
+    type: 'stimdef'
   }
 
   // set and randomize categories included in the experiment
   let categories
   if (expdef.runMode=='quicktest'){
-      categories = ["bird","sports"]
+      categories = ["bird"]
   } else {
       categories = ["bird","sports", "kitchen","lighting","watercraft","container", "construction","dessert", "fruit", "instrument", "vegetable", "vehicle", "electronic"]
   }
@@ -211,8 +219,6 @@ function runExperiment(){
   ]
 
   blockTypes=blockTypes.slice(0,categories.length)
-
-  console.log(blockTypes)
 
   stimdef.blockTypes = jsPsych.randomization.repeat(blockTypes, 1);
 
@@ -292,7 +298,8 @@ function runExperiment(){
           tNum: expdef.totaltrialNum+tblockNum,
           correctFeedback: imgidx % 2,
           setSize: block.images.length,
-          imgIdx:imgidx
+          imgIdx:imgidx,
+          phase: block.phase
         }));
         expdef.totaltrialNum+=tryTrials.length
         block.trials=tryTrials
@@ -305,11 +312,13 @@ function runExperiment(){
           }
         })
         if (blockidx==stimdef.blockTypes.length-1){
+          expdef.totalTrainNum=trainingBlock[0]["setSize"]*expdef.nrepeats
           progress.fetched.images=true
         }
       });
     })
   })
+
 
   // log to console if requested
   consoleLog && console.log('Blocks\n', stimdef.blockTypes);
@@ -329,12 +338,9 @@ function runExperiment(){
   } 
   
   if (urlParams.has('PROLIFIC_PID')) {
-    expdef.subjectId = urlParams.get('PROLIFIC_PID');
-    expdef.prolificId = expdef.subjectId
-    stimdef.subjectId = expdef.subjectId
-    stimdef.prolificId = expdef.subjectId
-    progress.subjectId = expdef.subjectId
-    progress.prolificId = expdef.subjectId
+    expdef.prolificId = urlParams.get('PROLIFIC_PID');
+    stimdef.prolificId = expdef.prolificId
+    progress.prolificId = expdef.prolificId
   }
   //
   if (urlParams.has('SESSION_ID')) {
@@ -425,7 +431,7 @@ function runExperiment(){
                 .attr("x", centerX)
                 .attr("text-anchor", "middle"); // Ensures text is centered around its x
             })
-
+            d3.select(stimdef.idFixation).attr('opacity', '0')
             if (!progress.barUpdate){
               d3.select(stimdef.idProgress).attr('opacity', '0')
               d3.select(stimdef.idProgressFrame).attr('opacity', '0')
@@ -461,21 +467,22 @@ function runExperiment(){
         var current_width = Number(d3.select(stimdef.idProgress).attr('width'));
         var progressbar_fullLength = Number(d3.select(stimdef.idProgressFrame).attr('width'))
 
-        var point2bar = progressbar_fullLength / expdef.maxReward;
-        var expected_width = point2bar * stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].maxReward*progress.expectedAccuracy;
+        var expectedMaxRewards=(1-progress.doneFraction)*(expdef.maxReward*progress.expectedAccuracy)+progress.doneFraction*(expdef.maxReward*progress.accumulatedAccuracy)
+
+        var point2bar = progressbar_fullLength / expectedMaxRewards;
+
+        var expected_width = point2bar*expectedMaxRewards*progress.doneFraction;
+
+        if (trialdata.feedback>0){
+          expected_width+=expdef.feedbackValues[trialdata.feedback-1]*point2bar
+        }
 
         var delta_width = expected_width - current_width;
 
-        var delta_max_width = point2bar*stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].maxReward - current_width;
+        var next_width = current_width + delta_width;
 
-        var corrected_delta = progress.doneFraction * delta_max_width + (1-progress.doneFraction)*delta_width
-
-        if (progress.tNum==expdef.totaltrialNum){
-          corrected_delta=delta_width;
-        }
-        var next_width = current_width + corrected_delta;
         progress.currentBarWidth=next_width
-        //console.log(current_width,progressbar_fullLength,point2bar,expected_width,delta_width,correction_factor,next_width)
+
         await new Promise(resolve => {
           d3.select(stimdef.idProgress)
             .transition().duration(100*expdef.decimateDurations).attr('width', next_width.toString())
@@ -490,7 +497,7 @@ function runExperiment(){
         });
       }
       var trialdata = jsPsych.data.getLastTrialData().trials[0]
-      if (progress.barUpdate && trialdata.correct>0) {
+      if ((progress.barUpdate && trialdata.correct>0) | (progress.tNum>=expdef.totaltrialNum-1)){
         progressBarUpdate(trialdata).then(done)
       } else {
         jsPsych.pluginAPI.setTimeout(()=>{
@@ -595,7 +602,6 @@ function runExperiment(){
     },
     name: "learningtrial",
     correctResponse: function () {
-      console.log(stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].correctAction)
       return stimdef.blockTypes[progress.bNum].trials[progress.tblockNum].correctAction
     },
     correctFeedback: function () {
@@ -611,15 +617,19 @@ function runExperiment(){
       //
       progress.tblockNum += 1;
       progress.tNum += 1;
-      if (trialdata.correct > 0) {
-        progress.sumCorrect += 1
+      if (stimdef.blockTypes[progress.bNum].phase=="learn"){
+        progress.tTestNum += 1;
+        if (trialdata.correct > 0) {
+          progress.sumCorrect += 1
+        }
+        progress.accumulatedAccuracy = (progress.sumCorrect / (progress.tTestNum));
+        progress.expectedAccuracy = (1 - progress.doneFraction) * progress.guessedAccuracy + progress.doneFraction * progress.accumulatedAccuracy;
+        if (trialdata.correct > 0) {
+          progress.cumreward = progress.cumreward + expdef.feedbackValues[trialdata.correct_feedback];
+        }
+        progress.doneFraction = (progress.tTestNum) / (expdef.totaltrialNum-expdef.totalTrainNum);
       }
-      progress.doneFraction = progress.tNum / expdef.totaltrialNum;
-      progress.accumulatedAccuracy = (progress.sumCorrect / (progress.tNum));
-      progress.expectedAccuracy = (1 - progress.doneFraction) * progress.guessedAccuracy + progress.doneFraction * progress.accumulatedAccuracy;
-      if (trialdata.correct > 0) {
-        progress.cumreward = progress.cumreward + expdef.feedbackValues[trialdata.correct_feedback];
-      }
+
     }
   }
   var learning_block = {
@@ -763,16 +773,23 @@ function runExperiment(){
       return stimdef
     },
     on_start: function(){
-      var interaction_data = jsPsych.data.getInteractionData();
-      interaction_data.trialTag = 'interactionData';
-      jsPsych
-        .data
-        .get()
-        .push(interaction_data);
-      sendDataFromIndexedDB('trials',expdef).then(()=>{
-        d3.select("#main-customhtml").remove()
-        jsPsych.finishTrial({})
-      })
+      var interaction_data = jsPsych.data.getInteractionData()
+      interaction_data={...interaction_data, ...{
+        subjectId: expdef.subjectId,
+        sessionId: expdef.sessionId,
+        studyId: expdef.studyId,
+        experimentName: 'RLWM',
+        sent: 0,
+        type: 'trials',
+        trialTag: 'interactionData'
+      }};
+      addItem('trials', interaction_data)
+      setTimeout(async ()=>{
+        await sendDataFromIndexedDB('trials',experimentSettings.expdef, selfdestruct=true).then(()=>{
+          d3.select("#main-customhtml").remove()
+          jsPsych.finishTrial({})
+        })
+      },1000)
     },
     content: function () {
       return lang.final_show;
@@ -802,8 +819,7 @@ function runExperiment(){
         fetch(`${baseUrl}/api/getProfilicCode`)
         .then(res=>res.json())
         .then(data => {
-          window.indexedDB.deleteDatabase(databaseName);
-          window.location.href = `https://app.prolific.com/submissions/complete?cc=${data.code}`;
+          window.location.href = `https://app.prolific.com/submissions/complete?cc=${data.code}`
         })
       } else {
         window.location.href="https://www.google.com"
@@ -931,31 +947,49 @@ function runExperiment(){
         socket.emit("simulationData", simulationData)
       }
     } else {
+      var loggedId=null
       try {
-        expdef.subjectId = await getCurrentUser()
+        loggedId = await getCurrentUser()
+        expdef.loggedId=loggedId
+        stimdef.loggedId=loggedId
+        progress.loggedId=loggedId
       } catch {
         console.log("No logged user")
       }
       stimdef.subjectId=expdef.subjectId
       progress.subjectId=expdef.subjectId
-      // expdef query
-      var query_results=[]
-      try {
-        query_results = await getByCompound('expdef', expdef);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-      if (query_results.length==0){
-        addItem('stimdef', stimdef);
-        addItem('progress', progress);
-        addExpdef(expdef);
-      }
+
+      addExpdef(expdef);
+      addItem('stimdef', stimdef);
+      addItem('progress', progress);
+
+      setInterval(()=>{
+        fetch(`${baseUrl}/api/uploadData`, {
+            method: 'HEAD'
+        })
+        .then(async response => {
+              if (response.ok) {
+                  await sendDataFromIndexedDB('expdef',expdef)
+                  await sendDataFromIndexedDB('stimdef',expdef)
+                  await sendDataFromIndexedDB('progress',expdef)
+                  await sendDataFromIndexedDB('trials',expdef)
+              } else {
+                  console.warn(`⚠️ Server API not accessible: ${response.status}`);
+              }
+          })
+          .catch(error => {
+              console.error('❌ Network or CORS error:', error);
+          });
+      }, expdef.sendInterval)
+
       jsPsych.data.addProperties({
         subjectId: expdef.subjectId,
         sessionId: expdef.sessionId,
         studyId: expdef.studyId,
+        loggedId: loggedId,
         experimentName: 'RLWM',
         sent: 0,
+        type: 'trials'
       });
       if (expdef.env.CONTEXT=='local'){
         if (!socket){
@@ -968,8 +1002,6 @@ function runExperiment(){
         socket.emit('expdef', expdef);
         socket.emit('stimdef', stimdef);
       }
-
-      console.log("Done fetching!");
       jsPsych.run(main_timeline)
     }
   }

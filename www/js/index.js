@@ -20,6 +20,7 @@
 // Wait for the deviceready event before using any of Cordova's device APIs.
 // See https://cordova.apache.org/docs/en/latest/cordova/events/events.html#deviceready
 
+const baseUrl = `${window.location.protocol}//${window.location.host}`;
 const queryString = window.location.search;
 const urlParams = new URLSearchParams(queryString);
 
@@ -28,6 +29,11 @@ if (urlParams.has('LANGUAGE')) {
     language = urlParams.get('LANGUAGE');
 } else if (urlParams.has('LANG')) {
     language = urlParams.get('LANG');
+}
+
+var task=""
+if (urlParams.has('TASK')) {
+    task = urlParams.get('TASK');
 }
 
 function uuid16Base64() {
@@ -109,11 +115,13 @@ var db;
 var databaseName = 'dbRLWM';
 var databaseVersion = 1;
 var sendInterval=10000;
+
 var openRequest = window.indexedDB.open(databaseName, databaseVersion);
 
 openRequest.onerror = function (event) {
     console.log(openRequest.errorCode);
 };
+
 openRequest.onsuccess = function (event) {
     // Database is open and initialized - we're good to proceed.
     db = openRequest.result;
@@ -137,7 +145,8 @@ openRequest.onupgradeneeded = function (event) {
     storeTrials.createIndex('findingIndex', ['subjectId', 'sessionId', 'studyId'], { unique: false }); // NEW
 
     // create progress store
-    var storeProgress = db.createObjectStore('progress', { keyPath: 'sessionId', autoIncrement: true});
+    var storeProgress = db.createObjectStore('progress', { keyPath: 'progressId', autoIncrement: true});
+    storeProgress.createIndex('progressId', 'progressId', { unique: false }); 
     storeProgress.createIndex('sessionId', 'sessionId', { unique: false }); 
     storeProgress.createIndex('subjectId', 'subjectId', { unique: false });
     storeProgress.createIndex('studyId', 'studyId', { unique: false });
@@ -146,7 +155,8 @@ openRequest.onupgradeneeded = function (event) {
     storeProgress.createIndex('findingIndex', ['subjectId', 'sessionId', 'studyId'], { unique: false }); // NEW
 
     // create expdef store
-    var storeExpdef = db.createObjectStore('expdef', { keyPath: 'sessionId', autoIncrement: true});
+    var storeExpdef = db.createObjectStore('expdef', { keyPath: 'expdefId', autoIncrement: true});
+    storeExpdef.createIndex('expdefId', 'expdefId', { unique: false }); 
     storeExpdef.createIndex('sessionId', 'sessionId', { unique: false });  
     storeExpdef.createIndex('subjectId', 'subjectId', { unique: false });
     storeExpdef.createIndex('studyId', 'studyId', { unique: false });   
@@ -155,7 +165,8 @@ openRequest.onupgradeneeded = function (event) {
     storeExpdef.createIndex('findingIndex', ['subjectId', 'sessionId', 'studyId'], { unique: false }); // NEW
 
     // create stimdef store
-    var storeStimdef = db.createObjectStore('stimdef', { keyPath: 'sessionId', autoIncrement: true});
+    var storeStimdef = db.createObjectStore('stimdef', { keyPath: 'stimdefId', autoIncrement: true});
+    storeStimdef.createIndex('stimdefId', 'stimdefId', { unique: false });    
     storeStimdef.createIndex('sessionId', 'sessionId', { unique: false });    
     storeStimdef.createIndex('subjectId', 'subjectId', { unique: false });
     storeStimdef.createIndex('studyId', 'studyId', { unique: false });    
@@ -197,14 +208,13 @@ function getByCompound(storeName, object, filterSent=null) {
     });
 }
 
-async function sendDataFromIndexedDB(storeName,object) {
+async function sendDataFromIndexedDB(storeName,object,selfdestruct=false) {
 
     const transaction = db.transaction(storeName, 'readwrite');
     const store = transaction.objectStore(storeName);
     const index = store.index('sendingIndex');
     const compoundKey = [object.subjectId, object.sessionId, object.studyId, 0];
     const request = index.getAll(compoundKey);
-
     request.onsuccess = function (event) {
         var results = event.target.result;
         const baseUrl = `${window.location.protocol}//${window.location.host}`;
@@ -217,7 +227,7 @@ async function sendDataFromIndexedDB(storeName,object) {
             body: JSON.stringify({data: results, type: storeName})
         })
         .then(response => response.json())
-        .then(()=>{
+        .then((respjson)=>{
             const transaction = db.transaction(storeName, 'readwrite');
             const store = transaction.objectStore(storeName);
             const index = store.index('sendingIndex');
@@ -235,6 +245,9 @@ async function sendDataFromIndexedDB(storeName,object) {
                     };
                     cursor.continue();  // Move to the next item
                 }
+            }
+            if (selfdestruct){
+                window.indexedDB.deleteDatabase(databaseName);
             }
             return
         })
@@ -269,25 +282,6 @@ function addExpdef(newExpdef) {
     }
     //
     expdefStore.add(newExpdef);
-    //
-    setInterval(()=>{
-        fetch(`${baseUrl}/api/uploadData`, {
-            method: 'HEAD'
-        })
-        .then(async response => {
-            if (response.ok) {
-                await sendDataFromIndexedDB('expdef',newExpdef)
-                await sendDataFromIndexedDB('stimdef',newExpdef)
-                await sendDataFromIndexedDB('progress',newExpdef)
-                await sendDataFromIndexedDB('trials',newExpdef)
-            } else {
-                console.warn(`⚠️ Server API not accessible: ${response.status}`);
-            }
-        })
-        .catch(error => {
-            console.error('❌ Network or CORS error:', error);
-        });
-    }, sendInterval)
 }
 
 const firebaseConfig = {
@@ -405,7 +399,7 @@ async function launchExperiment(expName){
                 await loadScript(src);
             }
         }
-        if (urlParams.has('TASK') & urlParams.has('RUN_MODE')){
+        if (task.length>0 & urlParams.has('RUN_MODE')){
             const runMode = urlParams.get('RUN_MODE')
             if ((runMode=='simulation') & ("pythonModules" in expSpecs) & (expSpecs.pythonModules.length>0)){
                 for (const src of expSpecs.pythonModules) {
@@ -422,22 +416,17 @@ async function launchExperiment(expName){
 }
 
 // 
-const baseUrl = `${window.location.protocol}//${window.location.host}`;
 socket = io(baseUrl);
 socket.on("error", (error) => {
     console.log("socket connection problem");
 });
 socket.on("connect", (e) => {
     socket.emit('register', userId);
-    if (urlParams.has('TASK')){
-        const TASK = urlParams.get('TASK');
+    if (task.length>0){
         document.getElementById('auth-container').classList.add('d-none');
         document.getElementById('nav-bar').classList.add('d-none');
         document.getElementById('jspsych-body').classList.remove('d-none');
-        launchExperiment(TASK)
+        launchExperiment(task)
     }
 });
 
-socket.on('execute', (data) => {
-    console.log(data)
-});

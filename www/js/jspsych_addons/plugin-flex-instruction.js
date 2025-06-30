@@ -83,8 +83,6 @@ var jsPsychFlexInstruction = (function (jspsych) {
         min_duration=trial.content.min_duration
       }
 
-      console.log(trial.content)
-
       var displayElement="#"+trial.expdef.jspsychParentDiv;
 
       d3.select(displayElement)

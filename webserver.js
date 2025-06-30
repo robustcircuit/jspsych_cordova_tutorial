@@ -96,7 +96,7 @@ app.head('/api/uploadData', (req, res) => {
   res.status(200).end(); // .end() with no body
 });
 
-app.post('/api/uploadData', async (req, res) => {
+app.post('/api/uploadData', (req, res) => {
   if (req.body.type=='trials'){
     req.body.data.forEach((trial)=>{
         models[trial.experimentName].create(trial);
