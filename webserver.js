@@ -107,16 +107,8 @@ app.post('/api/uploadData', async (req, res) => {
   res.status(200).send({ message: 'success' });
 });
 
-app.get('/api/getProfilic', async (req, res) => {
-  if (req.body.type=='trials'){
-    req.body.data.forEach((trial)=>{
-        console.log(trial)
-        models[trial.experimentName].create(trial);
-    })
-  } else {
-      models[req.body.data[0].experimentName].create(req.body.data[0])
-  }
-  res.status(200).send({ message: 'success' });
+app.get('/api/getProfilicCode', (req, res) => {
+  res.status(200).send({code: process.env.PROLIFIC_NEUROGRAD});
 });
 
 // create http server for socket

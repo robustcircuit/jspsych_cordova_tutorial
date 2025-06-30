@@ -109,7 +109,6 @@ function runExperiment(){
     bNum:0,
     barUpdate:false,
     currentBarWidth:0.01,
-    remtNum: 0,
     fetched: {images: false, language: false},
     currentSVG: undefined
   }
@@ -279,9 +278,6 @@ function runExperiment(){
           imgIdx:imgidx
         }));
         expdef.totaltrialNum+=tryTrials.length
-        if (block.phase=='learn'){
-          progress.remtNum+=tryTrials.length
-        }
         block.trials=tryTrials
         block.trials.forEach((trial,tidx)=>{
           if (block.phase=="learn"){
@@ -313,8 +309,10 @@ function runExperiment(){
     expdef.subjectId = urlParams.get('SUBJECT_ID');
     stimdef.subjectId = urlParams.get('SUBJECT_ID');
     progress.subjectId = urlParams.get('SUBJECT_ID');
-  } else if (urlParams.has('PROFILIC_PID')) {
-    expdef.subjectId = urlParams.get('PROFILIC_PID');
+  } 
+  
+  if (urlParams.has('PROLIFIC_PID')) {
+    expdef.subjectId = urlParams.get('PROLIFIC_PID');
     expdef.prolificId = expdef.subjectId
     stimdef.subjectId = expdef.subjectId
     stimdef.prolificId = expdef.subjectId
@@ -459,7 +457,7 @@ function runExperiment(){
 
         var corrected_delta = progress.doneFraction * delta_max_width + (1-progress.doneFraction)*delta_width
 
-        if (progress.remtNum==0){
+        if (progress.tNum==expdef.totaltrialNum){
           corrected_delta=delta_width;
         }
         var next_width = current_width + corrected_delta;
@@ -606,7 +604,6 @@ function runExperiment(){
       progress.doneFraction = progress.tNum / expdef.totaltrialNum;
       progress.accumulatedAccuracy = (progress.sumCorrect / (progress.tNum));
       progress.expectedAccuracy = (1 - progress.doneFraction) * progress.guessedAccuracy + progress.doneFraction * progress.accumulatedAccuracy;
-      progress.remtNum -= 1
       if (trialdata.correct > 0) {
         progress.cumreward = progress.cumreward + expdef.feedbackValues[trialdata.correct_feedback];
       }
@@ -788,16 +785,15 @@ function runExperiment(){
     },
     on_finish: function(){
       socket.disconnect()
-      if ('prolific_id' in expdef){
-        fetch(`${baseUrl}/api/getEnv`)
+      if ('prolificId' in expdef){
+        fetch(`${baseUrl}/api/getProfilicCode`)
         .then(res=>res.json())
         .then(data => {
-          window.location.href = `https://app.prolific.com/submissions/complete?cc=${data.prolificCode}`;
+          window.indexedDB.deleteDatabase(databaseName);
+          window.location.href = `https://app.prolific.com/submissions/complete?cc=${data.code}`;
         })
       } else {
-        if (expdef.RUN_MODE!='normal'){
-          alert('DONE')
-        }
+        window.location.href="https://www.google.com"
       }
     }
   };
