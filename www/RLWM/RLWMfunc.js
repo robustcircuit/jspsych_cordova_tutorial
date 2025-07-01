@@ -44,7 +44,7 @@ function runExperiment(){
     env: {CONTEXT: 'web'},
     sent: 0,
     // general settings
-    nrepeats:(runMode=="quicktest") ? 10 : 3,
+    nrepeats:10,
     toleranceAvgDistanceRepetition:0.25,
     feedbackValues: [1,2],
     keyMode: 'keyboard',
