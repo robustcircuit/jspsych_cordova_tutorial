@@ -128,12 +128,18 @@ const io = socketIo(serverhttp, {
 });
 
 const clients = new Map(); // Store clients with identifiers
+const pythonClients = new Map(); // Store clients with identifiers
 
 io.on('connection', (socket) => {
 
   socket.on('register', (userId) => {
     console.log('Client registered:', userId);
     clients.set(userId, socket.id); // Map userId to socket.id
+  });
+
+  socket.on('register-pythonclient', (userId) => {
+    console.log('Python client registered:', userId);
+    pythonClients.set(userId, socket.id); // Map userId to socket.id
   });
 
   socket.on('disconnect', () => {
@@ -146,10 +152,44 @@ io.on('connection', (socket) => {
         break;
       }
     }
-  });   
+    for (const [userId, id] of pythonClients.entries()) {
+      if (id === socket.id) {
+        console.log('Python client disconnected:', userId);
+        pythonClients.delete(userId);
+        break;
+      }
+    }
+  }); 
+
+  socket.on('startSimulation', (data, callback) => {
+    // Find the Python client socket id for this user
+    const targetPythonSocketId = pythonClients.get(data.simul_userId);
+    clients.get(data.simul_userId);
+    if (targetPythonSocketId) {
+      // Now, get the socket instance using the socket id
+      const targetPythonSocket = io.sockets.sockets.get(targetPythonSocketId);
+
+      if (targetPythonSocket) {
+        targetPythonSocket.emit(
+          'requestSimulationOptions',
+          { data },
+          (simulationOptions) => {
+            console.log('Pyclient shared simulationOptions:', simulationOptions);
+            callback({ status: 'ok', simulationOptions: simulationOptions });
+          }
+        );
+      } else {
+        console.log('No socket instance found for', targetPythonSocketId);
+      }
+    } else {
+      console.log('No Python client registered for', data.simul_userId);
+    }
+  });
+  
   socket.on('simulationData', (data) => {
     console.log(data)
-  });  
+  }); 
+
 });
 
 

@@ -11,8 +11,6 @@ const selfFolder = parts[parts.length - 2];
 */
 function runExperiment(){
 
-  const baseUrl = `${window.location.protocol}//${window.location.host}`;
-
   var selfFolder='RLWM'
 
   if (typeof socket === 'undefined') {
@@ -238,6 +236,8 @@ function runExperiment(){
     "category": "hardware",
     "phase": "train",
   }]
+  expdef.totalTrainNum=trainingBlock[0]["setSize"]*expdef.nrepeats
+
   stimdef.blockTypes = trainingBlock.concat(stimdef.blockTypes); // join them back
 
   // assign images to each block, create path array for preloading and construct pseudorandomized trial list for each block)
@@ -246,12 +246,13 @@ function runExperiment(){
   expdef.maxReward=0
   fetch(`${baseUrl}/api/getEnv`)
   .then(res=>res.json())
-  .then(env => {
+  .then(async (env) => {
     expdef.env=env
-    stimdef.blockTypes.forEach((block,blockidx) =>{
+    for (let blockidx = 0; blockidx < stimdef.blockTypes.nrepeats; blockidx++) {
+      block=stimdef.blockTypes[blockidx]
       var catname=block.category
       folder_path=`${stimdef.imagesFolder}/${catname}`
-      fetch(`${baseUrl}/api/getFiles?folder=${folder_path}`)
+      await fetch(`${baseUrl}/api/getFiles?folder=${folder_path}`)
       .then(res => res.json())
       .then(images => {
         var shuffledImages = jsPsych.randomization.repeat(images, 1);
@@ -269,7 +270,7 @@ function runExperiment(){
         while (!spacingCondition){
           tryImages=[]
           block.images.forEach((img,imgidx)=>{
-            for (let i = 0; i < expdef.nrepeats; i++) {
+          for (let i = 0; i < expdef.nrepeats; i++) {
               tryImages.push(imgidx)
             }
           })
@@ -311,17 +312,12 @@ function runExperiment(){
             stimdef.blockTypes[blockidx].trials[tidx].maxReward=0       
           }
         })
-        if (blockidx==stimdef.blockTypes.length-1){
-          expdef.totalTrainNum=trainingBlock[0]["setSize"]*expdef.nrepeats
-          progress.fetched.images=true
-        }
       });
-    })
+    }
+    // log to console if requested
+    consoleLog && console.log('Blocks\n', stimdef.blockTypes);
+    progress.fetched.images=true
   })
-
-
-  // log to console if requested
-  consoleLog && console.log('Blocks\n', stimdef.blockTypes);
 
   ////////////////////////////////////////////////////////////////////
   //// Gather URL parameters
@@ -874,8 +870,7 @@ function runExperiment(){
   ////////////////////////////////////////////////////////////////////
   //// Assemble timeline(s)
   ////////////////////////////////////////////////////////////////////
-  let main_timeline
-  let simulation_options
+  let main_timeline  
   if (expdef.runMode=="normal"){
     main_timeline=[browsercheck_trial, trial_consent, trial_preload, enter_fullscreen, instructions_timeline, training_show, main_training, premain_show,main_learning, exit_fullscreen,final_show,end_show]
   } else if (expdef.runMode=="endtest"){
@@ -898,15 +893,6 @@ function runExperiment(){
       item => item.name=="learningblock"
     );
     main_timeline=[trial_preload,main_training, main_learning]
-    var nsimuls=1
-    if (urlParams.has('N_SIMULS')) {
-      nsimuls = parseInt(urlParams.get('N_SIMULS'));
-    }
-    simulation_options = {
-        RLWMaccuracy: 0.75,
-        nsimuls: nsimuls
-    }
-
   }
   function waitFor(conditionFn, checkInterval = 100) {
     return new Promise((resolve) => {
@@ -930,22 +916,26 @@ function runExperiment(){
     window.jsPsychInstance = jsPsych
     window.experimentSettings = {expdef,stimdef,progress}
     if (mode=='simulate'){
-      for (let sim = 0; sim < simulation_options.nsimuls; sim++) {
-        await jsPsych.simulate(main_timeline, "data-only", simulation_options).then(()=>{
-        })
-        var simulationBehavior=jsPsych.data.get().filterColumns(['keyResponse', 'correct'])
-        var simulationData=[]
-        stimdef.blockTypes.forEach((block)=>{
-          block.trials.forEach((trial,trialidx)=>{
-            const { image, ...trialInfo } = trial;
-            let trialObject = { ...trialInfo, ...simulationBehavior[trialidx] };
-            trialObject.simNum=sim
-            simulationData.push(trialObject)
-          })
-        })
-        progress = structuredClone(progress_init);
-        socket.emit("simulationData", simulationData)
+      var simulationOptions
+      var simul_userId="unknown"
+      if (urlParams.has('SIMUL_USERID')) {
+        simul_userId = urlParams.get('SIMUL_USERID');
       }
+      socket.emit('startSimulation', { 'simul_userId': simul_userId, 'web_userId': expdef.subjectId }, async (response) => {
+        simulationOptions=response.simulationOptions.simulationOptions
+        const script = document.createElement("script");
+        script.type = "py";
+        script.src = simulationOptions.pathPyMain;
+        script.setAttribute('config', simulationOptions.configPyScript);
+        script.onload = async () => {
+          console.log(`${src} loaded`);
+          const result = window.identify();  // await is key
+          console.log("Returned from Python:", result);
+        };
+        script.onerror = (err) => {
+        };
+        document.body.appendChild(script);
+      });
     } else {
       var loggedId=null
       try {

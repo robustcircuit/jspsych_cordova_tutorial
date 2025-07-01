@@ -1,0 +1,6 @@
+name = "Modeling loader"
+packages =["numpy", "pybads", "pyvbmc"]
+
+[files]
+"RLWM/python/RLWMinit.py"=""
+

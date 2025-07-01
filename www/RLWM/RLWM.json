@@ -17,8 +17,7 @@
       "RLWM/js/plugin-RLWMlearning.js"
     ],
     "pythonModules":[
-      "https://pyscript.net/latest/pyscript.css",
-      "https://pyscript.net/latest/pyscript.js"
+      "https://pyscript.net/releases/2025.5.1/core.js"
     ],
     "languages": [
       "RLWM/languages/lang.english.js"
