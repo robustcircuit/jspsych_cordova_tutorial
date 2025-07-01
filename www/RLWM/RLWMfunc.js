@@ -248,7 +248,7 @@ function runExperiment(){
   .then(res=>res.json())
   .then(async (env) => {
     expdef.env=env
-    for (let blockidx = 0; blockidx < stimdef.blockTypes.nrepeats; blockidx++) {
+    for (let blockidx = 0; blockidx < stimdef.blockTypes.length; blockidx++) {
       block=stimdef.blockTypes[blockidx]
       var catname=block.category
       folder_path=`${stimdef.imagesFolder}/${catname}`
@@ -313,10 +313,12 @@ function runExperiment(){
           }
         })
       });
+      if (blockidx==stimdef.blockTypes.length-1){
+        // log to console if requested
+        consoleLog && console.log('Blocks\n', stimdef.blockTypes);
+        progress.fetched.images=true
+      }
     }
-    // log to console if requested
-    consoleLog && console.log('Blocks\n', stimdef.blockTypes);
-    progress.fetched.images=true
   })
 
   ////////////////////////////////////////////////////////////////////
