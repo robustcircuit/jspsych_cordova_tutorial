@@ -610,7 +610,7 @@ function runExperiment(){
     },
     on_finish: function (trialdata) {
       //
-      trialdata.tNum=tNum
+      trialdata.tNum=progress.tNum
       progress.tblockNum += 1;
       progress.tNum += 1;
       if (stimdef.blockTypes[progress.bNum].phase=="learn"){
