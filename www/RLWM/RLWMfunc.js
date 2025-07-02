@@ -611,6 +611,7 @@ function runExperiment(){
     on_finish: function (trialdata) {
       //
       trialdata.tNum=progress.tNum
+      addItem('trials', trialdata)
       progress.tblockNum += 1;
       progress.tNum += 1;
       if (stimdef.blockTypes[progress.bNum].phase=="learn"){
@@ -780,7 +781,6 @@ function runExperiment(){
         trialTag: 'interactionData'
       }};
       addItem('trials', interaction_data)
-      addItem('trials', data);
       setTimeout(async ()=>{
         await sendDataFromIndexedDB('trials',experimentSettings.expdef, selfdestruct=true).then(()=>{
           d3.select("#main-customhtml").remove()
