@@ -91,10 +91,7 @@ function runExperiment(){
   var jsPsych = initJsPsych({
     display_element: expdef.jspsychParentDiv,
     on_trial_finish: function(data) {
-      // send trial to db
-      if (expdef.tags2save.includes(data.trialTag)){
-        addItem('trials', data);
-      }
+
     },
   });
 
@@ -613,6 +610,7 @@ function runExperiment(){
     },
     on_finish: function (trialdata) {
       //
+      trialdata.tNum=tNum
       progress.tblockNum += 1;
       progress.tNum += 1;
       if (stimdef.blockTypes[progress.bNum].phase=="learn"){
@@ -782,12 +780,13 @@ function runExperiment(){
         trialTag: 'interactionData'
       }};
       addItem('trials', interaction_data)
+      addItem('trials', data);
       setTimeout(async ()=>{
         await sendDataFromIndexedDB('trials',experimentSettings.expdef, selfdestruct=true).then(()=>{
           d3.select("#main-customhtml").remove()
           jsPsych.finishTrial({})
         })
-      },1000)
+      },6000)
     },
     content: function () {
       return lang.final_show;
@@ -923,7 +922,9 @@ function runExperiment(){
       if (urlParams.has('SIMUL_USERID')) {
         simul_userId = urlParams.get('SIMUL_USERID');
       }
-      socket.emit('startSimulation', { 'simul_userId': simul_userId, 'web_userId': expdef.subjectId }, async (response) => {
+      socket.emit('startSimulation', { 'simul_userId': simul_userId, 'web_userId': expdef.subjectId, experimentSettings: {expdef,stimdef,progress} }, async (response) => {
+        console.log(response)
+        /*
         simulationOptions=response.simulationOptions.simulationOptions
         const script = document.createElement("script");
         script.type = "py";
@@ -937,6 +938,7 @@ function runExperiment(){
         script.onerror = (err) => {
         };
         document.body.appendChild(script);
+        */
       });
     } else {
       var loggedId=null
